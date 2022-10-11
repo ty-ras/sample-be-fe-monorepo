@@ -2,9 +2,6 @@ set -e
 
 TYRAS_ROOT_DIR="$(pwd)"
 
-# Always use Alpine-based image
-TYRAS_NODE_VERSION="$(cat "${TYRAS_ROOT_DIR}/versions/node")-alpine"
-
 TYRAS_LIB_DIR="$1"
 
 if [ -z "${TYRAS_LIB_DIR}" ]; then
@@ -13,6 +10,9 @@ if [ -z "${TYRAS_LIB_DIR}" ]; then
 fi
 
 shift
+
+# Always use Alpine-based image
+TYRAS_NODE_VERSION="$(cat "${TYRAS_ROOT_DIR}/${TYRAS_LIB_DIR}/build-versions/node")-alpine"
 
 yarn ()
 {

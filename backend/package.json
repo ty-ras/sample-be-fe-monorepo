@@ -1,0 +1,56 @@
+{
+  "name": "@ty-ras/sample-be",
+  "version": "0.10.0",
+  "author": {
+    "name": "Stanislav Muhametsin",
+    "email": "346799+stazz@users.noreply.github.com",
+    "url": "https://github.com/stazz"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ty-ras/sample-be-fe-monorepo"
+  },
+  "type": "module",
+  "dependencies": {
+    "@ty-ras/server-node": "0.10.0",
+    "@ty-ras/data-backend-io-ts": "0.10.0",
+    "@ty-ras/metadata-jsonschema-io-ts": "0.10.0",
+    "@ty-ras/metadata-openapi": "0.10.0",
+    "fp-ts": "2.12.3",
+    "io-ts": "2.2.19",
+    "io-ts-types": "0.5.17",
+    "monocle-ts": "2.3.13",
+    "newtype-ts": "0.3.5"
+  },
+  "peerDependencies": {},
+  "devDependencies": {
+    "@babel/core": "7.19.3",
+    "@babel/eslint-parser": "7.19.1",
+    "@types/node": "18.7.18",
+    "@typescript-eslint/eslint-plugin": "5.38.0",
+    "@typescript-eslint/parser": "5.38.0",
+    "ava": "5.0.1",
+    "c8": "7.12.0",
+    "eslint": "8.23.1",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-prettier": "4.2.1",
+    "eslint-plugin-sonarjs": "0.15.0",
+    "prettier": "2.7.1",
+    "ts-node": "10.9.1",
+    "typescript": "4.8.4"
+  },
+  "scripts": {
+    "build:run": "yarn run lint && yarn run tsc",
+    "build:ci": "yarn run clear-build-artifacts && yarn run tsc --removeComments false --emitDeclarationOnly --declaration --declarationDir ./dist-ts && yarn run copy-d-ts-files && yarn run tsc --outDir ./dist-mjs && yarn run rename-js-to-mjs && yarn run tsc --module CommonJS --outDir ./dist-cjs && yarn run format-output-files",
+    "clear-build-artifacts": "rm -rf dist dist-ts dist-cjs dist-mjs build",
+    "copy-d-ts-files": "find ./src -mindepth 1 -maxdepth 1 -name '*.d.ts' -exec cp {} ./dist-ts +",
+    "format-output-files": "eslint --no-eslintrc --config '.eslintrc.output.cjs' --fix 'dist-cjs/*js' 'dist-mjs/*js'",
+    "lint": "eslint ./src --ext .ts,.tsx",
+    "rename-js-to-mjs": "find dist-mjs -name '*.js' -type f -exec sh -c 'for f in \"$@\"; do mv -- \"$f\" \"${f%.js}.mjs\"; done' -- {} +",
+    "run-server": "ts-node src",
+    "tsc": "tsc --project tsconfig.build.json",
+    "test:coverage": "c8 --temp-directory /tmp ava",
+    "test:run": "c8 --temp-directory /tmp --reporter text ava"
+  }
+}

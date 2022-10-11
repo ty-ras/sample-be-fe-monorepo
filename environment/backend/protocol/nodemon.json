@@ -1,0 +1,7 @@
+{
+  "watch": [
+    "/tyras/protocol/"
+  ],
+  "ext": "ts",
+  "exec": "cp /tyras/protocol/protocol.d.ts /tyras/code/src && echo 'Started watching protocol file' && sh"
+}
