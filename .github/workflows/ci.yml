@@ -1,0 +1,13 @@
+name: CI Pipeline
+
+# On each commit to PR to main branch.
+on:
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  ci_job:
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      fetch-depth: 1 # No need to fetch whole history for CI

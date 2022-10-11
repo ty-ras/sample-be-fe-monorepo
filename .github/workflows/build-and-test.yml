@@ -1,0 +1,100 @@
+name: Build, test, and publish
+
+on:
+  workflow_call:
+    inputs:
+      fetch-depth:
+        required: true
+        type: number
+      pre-run-function:
+        required: false
+        type: string
+        default: |
+          tyras_pre_run ()
+          {
+            echo 'No pre-run.'
+          }
+      post-run-function:
+        required: false
+        type: string
+        default: |
+          tyras_post_run ()
+          {
+            echo 'No post-run.'
+          }
+    secrets:
+      npm-publish-token:
+        required: false
+
+jobs:
+  build_and_test:
+    strategy:
+      matrix:
+        dir: [ backend, frontend ]
+    runs-on: ubuntu-latest
+    name: Build and test ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
+
+      - id: prepare
+        name: Prepare ${{ matrix.dir }}
+        shell: bash
+        run: |
+          set -e
+
+          ${{ inputs.pre-run-function }}
+          tyras_pre_run '${{ matrix.dir }}'
+
+      - id: install
+        name: Install dependencies of ${{ matrix.dir }}
+        shell: bash
+        run: |
+          set -e
+
+          ./scripts/install.sh '${{ matrix.dir }}' --frozen-lockfile
+
+      - id: test
+        name: Test ${{ matrix.dir }}
+        shell: bash
+        run: |
+          set -e
+
+          ./scripts/test.sh '${{ matrix.dir }}' coverage
+
+      - id: lint
+        name: Lint ${{ matrix.dir }}
+        shell: bash
+        run: |
+          set -e
+
+          ./scripts/lint.sh '${{ matrix.dir }}'
+
+      # Run build *after* tests - since tests no longer require transpiled JS to run
+      # We still want to run build to catch any TS error possibly lurking somewhere.
+      - id: compile
+        name: Compile ${{ matrix.dir }}
+        shell: bash
+        run: |
+          set -e
+
+          ./scripts/build.sh '${{ matrix.dir }}' ci
+
+      # - id: coverage
+      #   name: Upload coverage for '${{ matrix.dir }}'
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     flags: ${{ matrix.dir }}
+      #     directory: ${{ matrix.dir }}
+
+      - id: finalize
+        name: Finalize ${{ matrix.dir }}
+        shell: bash
+        run: |
+          set -e
+
+          ${{ inputs.post-run-function }}
+          tyras_post_run '${{ matrix.dir }}'
+        env:
+          NPM_PUBLISH_TOKEN: ${{ secrets.npm-publish-token }}
