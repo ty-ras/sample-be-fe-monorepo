@@ -6,7 +6,7 @@ services:
       context: "${TYRAS_ROOT_DIR}/environment"
       dockerfile: "${TYRAS_ROOT_DIR}/environment/Dockerfile.node"
       args:
-        NODE_VERSION: ${NODE_VERSION_BE}
+        NODE_VERSION: ${TYRAS_NODE_VERSION_BE}
     ports:
       - 127.0.0.1:8901:8901
     volumes:
@@ -14,6 +14,8 @@ services:
       - "${TYRAS_ROOT_DIR}/protocol/:/tyras/protocol/:ro"
       - "${TYRAS_ROOT_DIR}/environment/backend/:/tyras/config/:ro"
       - "${TYRAS_ROOT_DIR}/tsconfig.json:/tyras/tsconfig.json:ro"
+    environment:
+      TYRAS_BE_PORT: 8901
     entrypoint:
       - sh
       - -c
@@ -23,9 +25,9 @@ services:
         cd /tyras/code
         yarn install --frozen-lockfile
         cd /tyras/config/protocol
-        nodemon &
+        nodemon ${TYRAS_NODEMON_ARGS} &
         cd ../code
-        nodemon
+        nodemon ${TYRAS_NODEMON_ARGS}
     networks:
       be-nw:
   user-auth:
@@ -43,7 +45,7 @@ services:
         aliases:
           - tyras-auth
   db:
-    image: postgres:14
+    image: postgres:14-alpine
     environment:
       # These are for Postgres itself
       POSTGRES_USER: postgres

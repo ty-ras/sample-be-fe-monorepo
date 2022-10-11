@@ -1,5 +1,6 @@
 {
   "name": "@ty-ras/sample-be",
+  "private": true,
   "version": "0.10.0",
   "author": {
     "name": "Stanislav Muhametsin",
@@ -16,14 +17,15 @@
     "@ty-ras/server-node": "0.10.0",
     "@ty-ras/data-backend-io-ts": "0.10.0",
     "@ty-ras/metadata-jsonschema-io-ts": "0.10.0",
-    "@ty-ras/metadata-openapi": "0.10.0",
+    "@ty-ras/metadata-openapi": "0.10.1",
     "fp-ts": "2.12.3",
     "io-ts": "2.2.19",
     "io-ts-types": "0.5.17",
     "monocle-ts": "2.3.13",
-    "newtype-ts": "0.3.5"
+    "newtype-ts": "0.3.5",
+    "openapi-types": "12.0.2",
+    "raw-body": "2.5.1"
   },
-  "peerDependencies": {},
   "devDependencies": {
     "@babel/core": "7.19.3",
     "@babel/eslint-parser": "7.19.1",
@@ -38,6 +40,7 @@
     "eslint-plugin-sonarjs": "0.15.0",
     "prettier": "2.7.1",
     "ts-node": "10.9.1",
+    "tsconfig-paths": "4.1.0",
     "typescript": "4.8.4"
   },
   "scripts": {

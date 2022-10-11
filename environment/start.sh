@@ -2,7 +2,8 @@
 
 TYRAS_ROOT_DIR="$(pwd)"
 echo "TYRAS_ROOT_DIR=${TYRAS_ROOT_DIR}
-NODE_VERSION_BE=$(cat "${TYRAS_ROOT_DIR}/backend/build-versions/node")-alpine
+TYRAS_NODE_VERSION_BE=$(cat "${TYRAS_ROOT_DIR}/backend/build-versions/node")-alpine
+TYRAS_NODEMON_ARGS=$@
 " > "${TYRAS_ROOT_DIR}/environment/.env"
 
 docker compose \
