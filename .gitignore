@@ -1,0 +1,8 @@
+node_modules
+.vscode
+build
+dist*
+coverage
+.yarn
+*/.eslintrc*.cjs
+*/tsconfig*.json

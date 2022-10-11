@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    // Otherwise tsc will produce error:
+    // node_modules/@ava/get-port/dist/source/index.d.ts:1:23 - error TS1452: 'resolution-mode' assertions are only supported when `moduleResolution` is `node16` or `nodenext`.
+    // 
+    // 1 /// <reference types="node" resolution-mode="require"/>
+    //
+    // Also, this way, we will not compile any of the tests files, thus avoiding need to move them around in CI pipeline.
+    "src/**/__test__/*"
+  ],
+  "compilerOptions": {
+    // We don't want dangling // eslint-disable-xyz comments, as that will cause errors during formatting output .[m]js files.
+    "removeComments": true
+  },
+}

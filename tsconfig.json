@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module": "es2022",
+    "moduleResolution": "node",
+    "lib": [
+      "ES2022"
+    ],
+    "target": "ES2022",
+    "esModuleInterop": true,
+    // No code minimization/uglification is happening, thus preserving source maps does not bring much value.
+    // Furthermore, because .js and .mjs files will reside in the same directory, there will be a little hassle on the mapping file names + their refs in source.
+    "sourceMap": false,
+    "strict": true,
+    "exactOptionalPropertyTypes": false,
+    // We export dist-ts folder separately, so no need to include declaration files to dist folder.
+    "declaration": false,
+    "noErrorTruncation": true,
+    "incremental": true,
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  },
+}
