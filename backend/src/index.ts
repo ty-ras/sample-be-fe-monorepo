@@ -10,9 +10,6 @@ const main = async () => {
     7000,
   );
   console.info("Server started");
-  while (true) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
 };
 
 const listenAsync = (server: net.Server, host: string, port: number) =>
