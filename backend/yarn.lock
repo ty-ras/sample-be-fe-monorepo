@@ -350,103 +350,103 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.3.tgz#472eaab5f15c1ffdd7f8628bd4c4f753995ec79e"
   integrity sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==
 
-"@ty-ras/data-backend-io-ts@0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-backend-io-ts/-/data-backend-io-ts-0.10.0.tgz#a767493ebc4d9e6ee78e9f8416fe46b1fda9b522"
-  integrity sha512-qMRNGYcyH4r9cWwNfN+n23e1B+g8wwwS7ma/jSLnMvzPAMsu/ZlrGZXi7h65R0sxqNGRvxkFKnOrrVxD9atu/w==
+"@ty-ras/data-backend-io-ts@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-backend-io-ts/-/data-backend-io-ts-0.11.0.tgz#3b61ee99a96f56f97e413927b8478c64097ddac5"
+  integrity sha512-ZN+ufyjs7K8afWyX0a5RUZDpRNAVCofzh5MubqcsITu4uB8Em21Mu9F9AN5Nvj30FD8hYT+rY+7+suJyAiVahw==
   dependencies:
-    "@ty-ras/data-io-ts" "0.10.0"
-    "@ty-ras/spec" "0.10.1"
+    "@ty-ras/data-io-ts" "0.11.0"
+    "@ty-ras/endpoint-spec" "0.11.0"
 
-"@ty-ras/data-backend@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-backend/-/data-backend-0.10.1.tgz#842f82bf856f066d7524ca658a974ba424736f1f"
-  integrity sha512-MEDQqo2fvtQZPQYIq8gDN9m56hRpN21vErsdgqHLmgpJAtnwVbD604cK4DdwHOzhFtSJbT95b8si03bz2VpkhA==
+"@ty-ras/data-backend@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-backend/-/data-backend-0.11.0.tgz#a0e95e70a1053e8f7572082341029836a2682a1c"
+  integrity sha512-a1R4yAUk0hEqPs09eeGV1TxupJCMxeAJkPv0S2cjm/0SHhLUz5ouMfj055VwumYiPEAGiA5f26rlHudisVhtyw==
   dependencies:
-    "@ty-ras/data" "0.10.2"
+    "@ty-ras/data" "0.11.1"
 
-"@ty-ras/data-io-ts@0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-io-ts/-/data-io-ts-0.10.0.tgz#911c9b1eb0aa175e4e50cdb071f881fa71a50ea9"
-  integrity sha512-w7YZ6T6clUIZoc1gX5tGsAmUoamMJSu21nY1PZuMK4ds1fWVNwipWUshQWV9j3ltv2iJvrwGQKFelXU5/0B52w==
+"@ty-ras/data-io-ts@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-io-ts/-/data-io-ts-0.11.0.tgz#e127d4e99d354e130e0ce8800c15d8b1ceac8295"
+  integrity sha512-9PN+BQ+SooE/vheEcb2OWtogDqdWruv0iFq4ld8x8pttJl95oKH93kFPU78nLwHXSec5elOEM7lB84q9oNyW8A==
   dependencies:
-    "@ty-ras/data" "0.10.2"
-    "@ty-ras/protocol" "0.10.0"
+    "@ty-ras/data" "0.11.1"
+    "@ty-ras/protocol" "0.11.0"
 
-"@ty-ras/data@0.10.2":
-  version "0.10.2"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data/-/data-0.10.2.tgz#0b0d7667b4dd42f18f54f6035da70302b4e96885"
-  integrity sha512-/EbZppTUUJCPBvvCEwcJTNZrxd4FYON4ZzGqVBvRe9r+4Kr79dfx2+ewkxtx2gTMMiBNxRc6bw+MRt4/DHhiSg==
+"@ty-ras/data@0.11.1":
+  version "0.11.1"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data/-/data-0.11.1.tgz#23d4bb890273ebb917c384371dbc5f2e49bbcde5"
+  integrity sha512-sq5Qutpt0S7Ab9clkWi44Jo8XSyDtWDV4ZvTqUUSQH5ef6VWKiXqB9Nw2uttrEaIHP32hDdl1VAbyD6sb3P/SQ==
 
-"@ty-ras/endpoint-prefix@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/endpoint-prefix/-/endpoint-prefix-0.10.1.tgz#86bd6af1a65deab9083e5b45b2538ca64f5d5fe2"
-  integrity sha512-OLB3/DDC/ZC0z2ydUBhqk/hWb5oM3M8wSOP+3lxmvDOL3PAIip5XLIqGUfGtTg9sGLdOclcfyKmxjxowLJxvPg==
+"@ty-ras/endpoint-prefix@0.11.1":
+  version "0.11.1"
+  resolved "https://registry.yarnpkg.com/@ty-ras/endpoint-prefix/-/endpoint-prefix-0.11.1.tgz#1d68d1cba67116ba64597531710d1ce8b3a54bf5"
+  integrity sha512-2lCX2WDGvX00XtLNWJ3HA5InprKRyqsOiXW7RpdjEN0ypyxcLGHg4knNgcV0EHsQ+kWG3MOelFA2xlIw7Pm7tg==
   dependencies:
-    "@ty-ras/endpoint" "0.10.1"
+    "@ty-ras/endpoint" "0.11.2"
 
-"@ty-ras/endpoint@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/endpoint/-/endpoint-0.10.1.tgz#a7c7cbef504a66fd8bb5043f7af7156f7604ab82"
-  integrity sha512-kjsUtqS9silUMfw64dwzXTzQWJ/TjbsHagUaceWmUw+Q12RUUzRJV6gSxEvKCXfl1aseWmJvP3gIuGaPxZPHTw==
+"@ty-ras/endpoint-spec@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/endpoint-spec/-/endpoint-spec-0.11.0.tgz#b7b0d95bc2a57ddc0daaa2fd61188bf6e9e51376"
+  integrity sha512-ILvKz4y+2gMTslzwFb0ZZTBc0h/M6k2Cm6wkMOySG4yG7AX8SjXpjjLnCgUVZmwyqIbSmrJrHdfQWvhERbck+Q==
   dependencies:
-    "@ty-ras/data-backend" "0.10.1"
+    "@ty-ras/endpoint" "0.11.2"
+    "@ty-ras/metadata" "0.11.0"
 
-"@ty-ras/metadata-jsonschema-io-ts@0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-jsonschema-io-ts/-/metadata-jsonschema-io-ts-0.10.0.tgz#d1b3ffec8b3c7760cb4f9785579b02ab47861391"
-  integrity sha512-9hRbahPxSWOgS8goixfG5A8BQKiPgR7ROVH8EQOVr53zneGFaHLxkDgOc3rxnoTaydZnQe+9X5WrsdINIg/oBg==
+"@ty-ras/endpoint@0.11.2":
+  version "0.11.2"
+  resolved "https://registry.yarnpkg.com/@ty-ras/endpoint/-/endpoint-0.11.2.tgz#92ab74f5f59d11d6078686a143c5cb799e2d986d"
+  integrity sha512-tplhJUILF6VgKr2MVQ+WjtteNm3QnOI0FeI74gIrBolrrSVdCvO6UpXJrAxsNvso3KpZy/q1ZTmMtZ/QPFibzw==
   dependencies:
-    "@ty-ras/data-io-ts" "0.10.0"
-    "@ty-ras/metadata-jsonschema" "0.10.1"
+    "@ty-ras/data-backend" "0.11.0"
 
-"@ty-ras/metadata-jsonschema@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-jsonschema/-/metadata-jsonschema-0.10.1.tgz#69b6f33ad8920644135f79bbde7949d900ab95b1"
-  integrity sha512-JrnY1igVVEVG/O7WSRcC+kC4V2zSaYx/vKH4syQh3HKGH1/FhZ59mjjecWYiYxKj7VjOvo4j6+Wd4kJKE+6syA==
-
-"@ty-ras/metadata-openapi@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-openapi/-/metadata-openapi-0.10.1.tgz#9aa8945e3e1ace241465545b5388e1a60a2d1b57"
-  integrity sha512-utxjXtJ2fzd3OIg7sdYiL5S+Bbs60eHcA/Cy16D1FMEux4gHnIYtqbZp3iQ6bSp3vTLELVDQdVhockeUIbs8BA==
+"@ty-ras/metadata-jsonschema-io-ts@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-jsonschema-io-ts/-/metadata-jsonschema-io-ts-0.11.0.tgz#de6693775423bc6c654f8354898baadbe0cc7f62"
+  integrity sha512-irqxd6YbTCBeGHRfApaQL7OwDdqCVhG6MUbI3y0IGA3IWPmFRzcKn9M3cI8CoT433eOLfi+/YQAudXZTGKP/9Q==
   dependencies:
-    "@ty-ras/metadata" "0.10.3"
-    "@ty-ras/metadata-jsonschema" "0.10.1"
+    "@ty-ras/data-io-ts" "0.11.0"
+    "@ty-ras/metadata-jsonschema" "0.11.1"
 
-"@ty-ras/metadata@0.10.3":
-  version "0.10.3"
-  resolved "https://registry.yarnpkg.com/@ty-ras/metadata/-/metadata-0.10.3.tgz#768d819233a12823c5e3b4d23fec6371459065e0"
-  integrity sha512-XhOG87pncBMYiY0QlbG6fiNLUf1f1yrTIdTCJT4uY55ktDrX5jxf5nZFswCLPqgkI4CqftQHTmIM+3s3exoFkg==
+"@ty-ras/metadata-jsonschema@0.11.1":
+  version "0.11.1"
+  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-jsonschema/-/metadata-jsonschema-0.11.1.tgz#af0b80ea824e3f8a2a78532e7718eb635d85a547"
+  integrity sha512-VcVC2+7T95JYUuvlIQ41+cVMl8O3BAyFkkhjFU6nK4aXEtoIZarpPds3mcwER+RmELKkc5HgN5F8U0zrfieQ7A==
+
+"@ty-ras/metadata-openapi@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-openapi/-/metadata-openapi-0.11.0.tgz#f6891239538261d5908ffbc092605aa46956e414"
+  integrity sha512-SMcjatBSaF9FXHEU3uEYjuEOpNQXRQ1gGEAf6aAk7RLPyyYT/EPDTZTcz8X+TtTDA/CGZWe6DpstxK2l6x0UmA==
   dependencies:
-    "@ty-ras/data-backend" "0.10.1"
+    "@ty-ras/metadata" "0.11.0"
+    "@ty-ras/metadata-jsonschema" "0.11.1"
 
-"@ty-ras/protocol@0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/protocol/-/protocol-0.10.0.tgz#10e51e76b0a914d01a3ec5f6cc20937159b5fc38"
-  integrity sha512-9tgJwIGjDAbfBcw2HlXx5db9GZLEVM7uz+NY51OFvnvkhQU6zZm6l9aNJGvMIJlr1ynP/nxNCx2eIdP+cNRTzQ==
-
-"@ty-ras/server-node@0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/server-node/-/server-node-0.10.0.tgz#1032365164a138565cca33016c84578b31dd9347"
-  integrity sha512-ujl3ymKaFkqTJggx3jBCQJR+qLTQJFYRFLQJp0F4R5dnbfzLgUmeN/AxtTM74eoRvdUNM6WZ1EZtdN3QVEUf0g==
+"@ty-ras/metadata@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/metadata/-/metadata-0.11.0.tgz#4244c6a81b1b8b9e540aa01f478339da5a33019d"
+  integrity sha512-76Euj0dg1iIpJ1Br8n4evYg3yuihNAGI6pkokLNzdnPvsxwy9bfP3/7c0PZU7YNcuINkKGuDTBqIKg/cWLY6tQ==
   dependencies:
-    "@ty-ras/endpoint-prefix" "0.10.1"
-    "@ty-ras/server" "0.10.1"
+    "@ty-ras/data-backend" "0.11.0"
 
-"@ty-ras/server@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/server/-/server-0.10.1.tgz#4fa70f62c5007e800e13d459f010a5636169c439"
-  integrity sha512-lgBVfoHXi2Q3OdJgBlEElAa5qSKFYHbYk8HOEvCaw4FEZsZ+sAag2TE7Cf0tnssOhtvw9BQGHgSjgSvQ6L3Jvg==
-  dependencies:
-    "@ty-ras/endpoint" "0.10.1"
+"@ty-ras/protocol@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/protocol/-/protocol-0.11.0.tgz#58de14fa96e0371f0c0a0db2583e4a87c6f7d62d"
+  integrity sha512-C1LV6Ip67WPqWhp6i+C/4y0+YQXkCVxK76B2mC2b3NW/iJYvpX6G41tuOk3hUza9kolh/Q+Sxgeg3AHnXD6veQ==
 
-"@ty-ras/spec@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/spec/-/spec-0.10.1.tgz#e225c5e4681a3c2a2f624843bac0210d51e79af9"
-  integrity sha512-tqW2LJuuJZNtTc0nMp09zUCflOlwlRQ1o5Z1Ldsy+I7tE7bZDb/B6ZJMlJQ0Off5Ni+s2c9dSv4zpQj3So2OVA==
+"@ty-ras/server-node@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/server-node/-/server-node-0.11.0.tgz#a711f39e2c5a88aa30df346c85027da70e40514f"
+  integrity sha512-Tx//bFWEmPBItvpYxnsa7wxHHMoz0s+1wmSywIeeUeKNd2dLNbedra/lblIFId0LL3q35hDHFiUqZ0KD+XjxKg==
   dependencies:
-    "@ty-ras/endpoint" "0.10.1"
-    "@ty-ras/metadata" "0.10.3"
+    "@ty-ras/endpoint-prefix" "0.11.1"
+    "@ty-ras/server" "0.11.1"
+
+"@ty-ras/server@0.11.1":
+  version "0.11.1"
+  resolved "https://registry.yarnpkg.com/@ty-ras/server/-/server-0.11.1.tgz#b0933da5b478fec4d81f9af5f50ef42c6d2477ee"
+  integrity sha512-8IJoDoeu4qbnP31APIAi3E+OxPa2xK/BWqypyH6AmUmdxg7/tO2/+8ezep1TD6ranzkV4PT/ippDbsyH/FpSKg==
+  dependencies:
+    "@ty-ras/endpoint" "0.11.2"
 
 "@types/istanbul-lib-coverage@^2.0.1":
   version "2.0.4"

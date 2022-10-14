@@ -3,26 +3,24 @@ import type * as protocol from "@ty-ras/protocol";
 import type * as openapi from "@ty-ras/metadata-openapi";
 import type * as dataBE from "@ty-ras/data-backend-io-ts";
 import type * as data from "@ty-ras/data-io-ts";
-import type * as spec from "@ty-ras/spec";
+import type * as spec from "@ty-ras/endpoint-spec";
+import type * as server from "@ty-ras/server-node";
+import type * as state from "./state";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type EndpointSpec<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   TFunctionality extends (...args: any) => any,
+  TStateSpec extends state.TStateBase,
 > = dataBE.EndpointSpec<
   TProtocolSpec,
   TFunctionality,
-  GetProtocolState<TProtocolSpec>,
+  server.ServerContext,
+  ReadonlyArray<keyof TStateSpec>,
+  state.GetState<TStateSpec>,
   TMetadataProviders,
   void
 >;
-
-export type GetProtocolState<TProtocolSpec> =
-  TProtocolSpec extends protocol.ProtocolSpecHeaders<Record<string, "auth">>
-    ? AuthenticatedState
-    : Partial<AuthenticatedState>;
-
-export type DefaultState = Partial<AuthenticatedState>;
 
 export type TMetadataProviders = {
   openapi: openapi.OpenAPIMetadataBuilder<
@@ -32,10 +30,6 @@ export type TMetadataProviders = {
     dataBE.InputValidatorSpec<any>
   >;
 };
-
-export interface AuthenticatedState {
-  username: string;
-}
 
 export type AnyDecoder = data.Decoder<any>;
 export type AnyEncoder = data.Encoder<any, any>;
@@ -50,9 +44,6 @@ export type OpenAPIMetadataProviders = {
   >;
 };
 export type Builder<
-  TContext,
-  TRefinedContext,
-  TState,
   TMetadata extends spec.MetadataProvidersBase<
     AnyDecoder,
     AnyEncoder,
@@ -60,9 +51,8 @@ export type Builder<
     AnyInputContents
   > = OpenAPIMetadataProviders,
 > = spec.AppEndpointBuilderProvider<
-  TContext,
-  TRefinedContext,
-  TState,
+  server.ServerContext,
+  state.StateInfo,
   AnyDecoder,
   AnyEncoder,
   AnyOutputContents,

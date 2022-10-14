@@ -9,16 +9,14 @@ const main = async () => {
   await listenAsync(
     server.createServer({
       endpoints: api.createEndpoints(),
-      events: {
-        emit: (eventName, eventArgs) =>
-          console.info(
-            "EVENT",
-            eventName,
-            data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
-          ),
-      },
+      events: (eventName, eventArgs) =>
+        console.info(
+          "EVENT",
+          eventName,
+          data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
+        ),
       // TODO extract username from JWT token
-      createState: () => ({}),
+      createState: ({ stateInfo: statePropertyNames }) => ({}),
     }),
     "0.0.0.0",
     parseInt(

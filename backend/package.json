@@ -1,7 +1,7 @@
 {
   "name": "@ty-ras/sample-be",
   "private": true,
-  "version": "0.10.0",
+  "version": "0.11.0",
   "author": {
     "name": "Stanislav Muhametsin",
     "email": "346799+stazz@users.noreply.github.com",
@@ -14,10 +14,10 @@
   },
   "type": "module",
   "dependencies": {
-    "@ty-ras/server-node": "0.10.0",
-    "@ty-ras/data-backend-io-ts": "0.10.0",
-    "@ty-ras/metadata-jsonschema-io-ts": "0.10.0",
-    "@ty-ras/metadata-openapi": "0.10.1",
+    "@ty-ras/server-node": "0.11.0",
+    "@ty-ras/data-backend-io-ts": "0.11.0",
+    "@ty-ras/metadata-jsonschema-io-ts": "0.11.0",
+    "@ty-ras/metadata-openapi": "0.11.0",
     "fp-ts": "2.12.3",
     "io-ts": "2.2.19",
     "io-ts-types": "0.5.17",

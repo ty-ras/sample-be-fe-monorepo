@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import type * as types from "./types";
+import * as aux from "../auxiliary";
 import type { OpenAPIV3 as openapi } from "openapi-types";
 import * as data from "@ty-ras/data-backend-io-ts";
 import * as t from "io-ts";
-import * as spec from "@ty-ras/spec";
+import * as spec from "@ty-ras/endpoint-spec";
 
-export const createEndpoints = <TContext, TRefinedContext>(
+export const createOpenAPIEndpoint = <TContext>(
   // eslint-disable-next-line @typescript-eslint/ban-types
   builder: spec.AppEndpointBuilderProvider<
     TContext,
-    TRefinedContext,
-    types.DefaultState,
+    aux.StateInfo,
     unknown,
     unknown,
     {},
@@ -21,7 +20,7 @@ export const createEndpoints = <TContext, TRefinedContext>(
   unauthenticatedMD: openapi.Document,
 ) =>
   builder.atURL`/openapi`
-    .forMethod("GET")
+    .forMethod("GET", aux.endpointState({ username: false }))
     .withoutBody(
       ({ state: { username } }) =>
         username ? authenticatedMD : unauthenticatedMD,

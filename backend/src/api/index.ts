@@ -1,4 +1,4 @@
-import * as spec from "@ty-ras/spec";
+import * as spec from "@ty-ras/endpoint-spec";
 import * as server from "@ty-ras/server-node";
 import * as openapi from "@ty-ras/metadata-openapi";
 import * as jsonSchema from "@ty-ras/metadata-jsonschema-io-ts";
@@ -7,17 +7,13 @@ import * as be from "@ty-ras/server";
 import * as data from "@ty-ras/data-io-ts";
 import * as prefix from "@ty-ras/endpoint-prefix";
 import * as t from "io-ts";
-import * as apiThings from "./things";
-import * as apiOpenApi from "./openapi";
-import type * as types from "./types";
+import * as aux from "./auxiliary";
+import * as endpoints from "./endpoints";
 
 export const createEndpoints = () => {
   // Builder which allows defining endpoints without metadata or authentication
   // Will be needed for endpoint returning OpenAPI Document.
-  const initial = spec.bindNecessaryTypes<
-    server.Context<types.DefaultState>,
-    types.DefaultState
-  >(server.getStateFromContext);
+  const initial = spec.startBuildingAPI<server.ServerContext>();
 
   // Builder which requires metadata, with or without authentication
   const notAuthenticated = initial.withMetadataProvider(
@@ -31,15 +27,10 @@ export const createEndpoints = () => {
   );
 
   // Builder that requires validation, and enables authentication
-  const authenticated = notAuthenticated.refineContext(
-    be.createContextValidatorFactory(server.getStateFromContext)(
-      data.plainValidator(
-        t.type({
-          username: t.string,
-        }),
-      ),
-      403,
-    ),
+  const authenticated = notAuthenticated.changeStateProvider<aux.StateInfo>(
+    () => {
+      throw new Error("It looks like this callback will never be called (!).");
+    },
     {
       openapi: {
         securitySchemes: [
@@ -58,15 +49,16 @@ export const createEndpoints = () => {
   // Add things endpoints
   const things = prefix.atPrefix(
     "/thing",
-    ...apiThings.createEndpoints(authenticated),
+    ...endpoints.createThingsEndpoints(authenticated),
   );
 
   const authenticatedAPI = prefix.atPrefix("/api", things);
   // unauthenticatedAPI = login
 
   // Add endpoint to serve automatically generated OpenAPI Document
-  const openapiDoc = apiOpenApi.createEndpoints(
-    initial,
+  const openapiDoc = endpoints.createOpenAPIEndpoint(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    authenticated as any,
     authenticated.getMetadataFinalResult(
       {
         openapi: {
