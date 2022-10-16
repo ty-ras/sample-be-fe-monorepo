@@ -1,32 +1,77 @@
-/* eslint-disable @typescript-eslint/ban-types */
 import * as aux from "../auxiliary";
-import type { OpenAPIV3 as openapi } from "openapi-types";
+import { OpenAPIV3 as openapi } from "openapi-types";
 import * as data from "@ty-ras/data-backend-io-ts";
 import * as t from "io-ts";
-import * as spec from "@ty-ras/endpoint-spec";
 
-export const createOpenAPIEndpoint = <TContext>(
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  builder: spec.AppEndpointBuilderProvider<
-    TContext,
-    aux.StateInfo,
-    unknown,
-    unknown,
-    {},
-    {},
-    {}
-  >,
-  authenticatedMD: openapi.Document,
-  unauthenticatedMD: openapi.Document,
-) =>
-  builder.atURL`/openapi`
+export const createOpenAPIEndpoint = (
+  builder: aux.PlainBuilder,
+  metadata: openapi.Document,
+) => {
+  // Notice that this will be undefined if all operations are behind authentication
+  const unauthenticatedMD = removeAuthenticatedOperations(metadata);
+
+  return builder.atURL`/openapi`
     .forMethod("GET", aux.endpointState({ username: false }))
     .withoutBody(
-      ({ state: { username } }) =>
-        username ? authenticatedMD : unauthenticatedMD,
+      // Return OpenAPI document which doesn't have any information about authenticated endpoints for request which don't have username information
+      ({ state: { username } }) => (username ? metadata : unauthenticatedMD),
       // Proper validator for OpenAPI objects is out of scope of this sample
       data.responseBody(t.unknown),
       // No metadata - as this is the metadata-returning endpoint itself
       {},
     )
     .createEndpoint({});
+};
+
+// TODO move this to @ty-ras/metadata-openapi
+const removeAuthenticatedOperations = (
+  metadata: openapi.Document,
+): openapi.Document | undefined => {
+  const originalPathsLength = Object.keys(metadata.paths).length;
+  const unauthenticatedPaths = Array.from(
+    getUnauthenticatedPathObjects(metadata),
+  );
+  return originalPathsLength > unauthenticatedPaths.length
+    ? unauthenticatedPaths.length > 0
+      ? {
+          ...metadata,
+          paths: Object.fromEntries(unauthenticatedPaths),
+        }
+      : undefined
+    : metadata;
+};
+
+function* getUnauthenticatedPathObjects(metadata: openapi.Document) {
+  for (const [pathKey, pathObject] of Object.entries(metadata.paths)) {
+    let pathObjectOrExclude: typeof pathObject | string = pathObject;
+    if (pathObject) {
+      const supportedMethods = Object.values(openapi.HttpMethods).filter(
+        (method) => method in pathObject,
+      );
+      const authenticatedOperations = supportedMethods.filter((method) => {
+        const operation = pathObject[method];
+        return (operation?.security?.length ?? 0) > 0;
+      });
+      pathObjectOrExclude =
+        supportedMethods.length > 0
+          ? supportedMethods.length > authenticatedOperations.length
+            ? removeOperations(pathObject, authenticatedOperations)
+            : "exclude"
+          : pathObject;
+    }
+    if (typeof pathObjectOrExclude !== "string") {
+      yield [pathKey, pathObjectOrExclude] as const;
+    }
+  }
+}
+
+const removeOperations = (
+  pathObject: openapi.PathItemObject,
+  methods: ReadonlyArray<openapi.HttpMethods>,
+): openapi.PathItemObject => {
+  const shallowClone = { ...pathObject };
+  for (const method of methods) {
+    delete shallowClone[method];
+  }
+  return shallowClone;
+};

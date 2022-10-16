@@ -5,7 +5,7 @@ import * as data from "@ty-ras/data-backend-io-ts";
 import * as t from "io-ts";
 
 export const createThingsEndpoints = (builder: aux.Builder) => [
-  builder.atURL``.batchSpec(getThings()).createEndpoint({
+  builder.atURL``.batchSpec(getThings).createEndpoint({
     openapi: {
       summary: "Query things",
     },
@@ -16,7 +16,7 @@ const getThings: aux.EndpointSpec<
   protocol.APIGetThings,
   typeof services.getThings,
   { username: true }
-> = () => ({
+> = {
   state: aux.endpointState({
     username: true,
   }),
@@ -51,4 +51,4 @@ const getThings: aux.EndpointSpec<
       operation: {},
     },
   },
-});
+};

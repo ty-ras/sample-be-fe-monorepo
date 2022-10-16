@@ -13,10 +13,25 @@ const main = async () => {
         console.info(
           "EVENT",
           eventName,
-          data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
+          JSON.stringify(
+            data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
+          ),
         ),
-      // TODO extract username from JWT token
-      createState: ({ stateInfo: statePropertyNames }) => ({}),
+      createState: ({ stateInfo: statePropertyNames }) => {
+        const state: Partial<api.State> = {};
+        for (const authenticatedProperty of api.filterAuthenticatedProperties(
+          statePropertyNames,
+        )) {
+          if (authenticatedProperty === "username") {
+            // TODO extract username from JWT token
+            state.username = undefined;
+          } else {
+            // TODO e.g. group names etc
+          }
+        }
+
+        return state;
+      },
     }),
     "0.0.0.0",
     parseInt(

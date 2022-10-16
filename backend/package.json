@@ -14,10 +14,10 @@
   },
   "type": "module",
   "dependencies": {
-    "@ty-ras/server-node": "0.11.0",
-    "@ty-ras/data-backend-io-ts": "0.11.0",
+    "@ty-ras/server-node": "0.11.1",
+    "@ty-ras/data-backend-io-ts": "0.11.4",
     "@ty-ras/metadata-jsonschema-io-ts": "0.11.0",
-    "@ty-ras/metadata-openapi": "0.11.0",
+    "@ty-ras/metadata-openapi": "0.11.2",
     "fp-ts": "2.12.3",
     "io-ts": "2.2.19",
     "io-ts-types": "0.5.17",
