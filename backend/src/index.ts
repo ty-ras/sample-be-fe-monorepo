@@ -42,6 +42,7 @@ const main = async () => {
   console.info("Server started");
 };
 
+// TODO move this to @ty-ras/server
 const listenAsync = (server: net.Server, host: string, port: number) =>
   new Promise<void>((resolve, reject) => {
     try {
@@ -55,6 +56,20 @@ const doThrow = (msg: string) => {
   throw new Error(msg);
 };
 
+// TODO proper config:
+// auth:
+//  - Cognito endpoint
+//  - pool ID
+// http:
+//  - host
+//  - port
+//  - certs
+// db:
+//  - host
+//  - port
+//  - db name
+//  - username
+//  - password
 const PORT_ENV_VAR = "TYRAS_BE_PORT";
 
 void main();
