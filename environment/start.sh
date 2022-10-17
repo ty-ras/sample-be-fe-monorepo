@@ -6,6 +6,8 @@ TYRAS_NODE_VERSION_BE=$(cat "${TYRAS_ROOT_DIR}/backend/build-versions/node")-alp
 TYRAS_NODEMON_ARGS=$@
 " > "${TYRAS_ROOT_DIR}/environment/.env"
 
+cp -r "${TYRAS_ROOT_DIR}/environment/auth/." "${TYRAS_ROOT_DIR}/environment/.data/user-auth"
+
 docker compose \
   --project-name tyras-be-and-fe \
   --file environment/docker-compose.yml \

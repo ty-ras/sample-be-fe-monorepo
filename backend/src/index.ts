@@ -3,9 +3,11 @@ import * as server from "@ty-ras/server-node";
 import * as data from "@ty-ras/data";
 import * as api from "./api";
 import type * as net from "net";
-import * as process from "process";
+import * as config from "./config";
 
 const main = async () => {
+  const { authentication, http, database } =
+    await config.acquireConfigurationOrThrow();
   await listenAsync(
     server.createServer({
       endpoints: api.createEndpoints(),
@@ -14,15 +16,14 @@ const main = async () => {
           "EVENT",
           eventName,
           JSON.stringify(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
           ),
         ),
       createState: ({ stateInfo: statePropertyNames }) => {
         const state: Partial<api.State> = {};
-        for (const authenticatedProperty of api.filterAuthenticatedProperties(
-          statePropertyNames,
-        )) {
-          if (authenticatedProperty === "username") {
+        for (const propertyName of statePropertyNames) {
+          if (propertyName === "username") {
             // TODO extract username from JWT token
             state.username = undefined;
           } else {
@@ -33,11 +34,8 @@ const main = async () => {
         return state;
       },
     }),
-    "0.0.0.0",
-    parseInt(
-      process.env[PORT_ENV_VAR] ||
-        doThrow(`Please specify port via env variable "${PORT_ENV_VAR}".`),
-    ),
+    http.host,
+    http.port,
   );
   console.info("Server started");
 };
@@ -51,25 +49,5 @@ const listenAsync = (server: net.Server, host: string, port: number) =>
       reject(e);
     }
   });
-
-const doThrow = (msg: string) => {
-  throw new Error(msg);
-};
-
-// TODO proper config:
-// auth:
-//  - Cognito endpoint
-//  - pool ID
-// http:
-//  - host
-//  - port
-//  - certs
-// db:
-//  - host
-//  - port
-//  - db name
-//  - username
-//  - password
-const PORT_ENV_VAR = "TYRAS_BE_PORT";
 
 void main();

@@ -15,7 +15,25 @@ services:
       - "${TYRAS_ROOT_DIR}/environment/backend/:/tyras/config/:ro"
       - "${TYRAS_ROOT_DIR}/tsconfig.json:/tyras/tsconfig.json:ro"
     environment:
-      TYRAS_BE_PORT: 8901
+      TYRAS_BE_CONFIG: |
+        {
+          "http": {
+            "host": "0.0.0.0",
+            "port": 8901
+          },
+          "authentication": {
+            "host": "tyras-auth",
+            "port": 3999,
+            "poolID": "abcdefgh"
+          },
+          "database": {
+            "host": "tyras-db",
+            "port": 5432,
+            "dbName": "tyras_db",
+            "username": "tyras_be_login",
+            "password": "tyras_be_login_pw"
+          }
+        }
     entrypoint:
       - sh
       - -c

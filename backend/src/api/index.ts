@@ -18,7 +18,7 @@ export const createEndpoints = () => {
     withOpenAPI.getMetadataFinalResult(
       {
         openapi: {
-          title: "Sample REST API (Authenticated)",
+          title: "Sample REST API",
           version: "0.1",
         },
       },

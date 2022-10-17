@@ -1,0 +1,17 @@
+{
+  "Clients": {
+    "abcdefghijklmnopqrstuvwxy": {
+      "ClientId": "abcdefghijklmnopqrstuvwxy",
+      "ClientName": "fe-client",
+      "CreationDate": "2022-01-01T01:01:01.000Z",
+      "ExplicitAuthFlows": [
+        "ALLOW_REFRESH_TOKEN_AUTH",
+        "ALLOW_ADMIN_USER_PASSWORD_AUTH",
+        "ALLOW_USER_SRP_AUTH"
+      ],
+      "LastModifiedDate": "2022-01-01T01:01:01.000Z",
+      "PreventUserExistenceErrors": "ENABLED",
+      "UserPoolId": "local_abcdefgh"
+    }
+  }
+}
