@@ -36,6 +36,7 @@ export const doVerify = async (
     tokenUse: "access",
     scope: "aws.cognito.signin.user.admin",
   });
+  // We must do this manually if we are using 'http' protocol.
   verifier.cacheJwks(
     config.throwOnError(
       jwksContents.decode(
