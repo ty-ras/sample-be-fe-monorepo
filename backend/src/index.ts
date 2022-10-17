@@ -4,10 +4,17 @@ import * as data from "@ty-ras/data";
 import * as api from "./api";
 import type * as net from "net";
 import * as config from "./config";
+import * as cognito from "./cognito";
 
 const main = async () => {
   const { authentication, http, database } =
     await config.acquireConfigurationOrThrow();
+  await cognito.doVerify(
+    authentication.host,
+    authentication.port,
+    authentication.poolId,
+    "",
+  );
   await listenAsync(
     server.createServer({
       endpoints: api.createEndpoints(),

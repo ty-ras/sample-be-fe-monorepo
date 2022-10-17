@@ -24,7 +24,7 @@ services:
           "authentication": {
             "host": "tyras-auth",
             "port": 3999,
-            "poolID": "abcdefgh"
+            "poolId": "local_abcdefgh"
           },
           "database": {
             "host": "tyras-db",
@@ -52,12 +52,13 @@ services:
     image: jagregory/cognito-local:3.21.1
     environment:
       PORT: 3999
+      DEBUG: 1
     expose:
       - 3999
     # ports:
     #   - 127.0.0.1:3999:3999
     volumes:
-      - "${TYRAS_ROOT_DIR}/environment/.data/user-auth/:/app/.cognito/:rw"
+      - "${TYRAS_ROOT_DIR}/environment/.data/auth/:/app/.cognito/:rw"
     networks:
       be-nw:
         aliases:

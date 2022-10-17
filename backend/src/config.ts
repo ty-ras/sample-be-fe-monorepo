@@ -86,7 +86,7 @@ const config = t.type(
     authentication: t.type(
       {
         ...remoteEndpoint.props,
-        poolID: nonEmptyString,
+        poolId: nonEmptyString,
       },
       "AuthConfig",
     ),
@@ -112,7 +112,7 @@ const config = t.type(
 
 type ConfigStringType = { type: "JSON" | "file"; str: string };
 
-const throwOnError = <E, A>(
+export const throwOnError = <E, A>(
   either: E.Either<E, A>,
   getErrorOrMessage?: (e: E) => string | Error,
 ): A => {
