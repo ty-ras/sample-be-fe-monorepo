@@ -22,9 +22,13 @@ services:
             "port": 8901
           },
           "authentication": {
-            "host": "tyras-auth",
-            "port": 3999,
-            "poolId": "local_abcdefgh"
+            "connection": {
+              "host": "tyras-auth",
+              "port": 3999,
+              "scheme": "http"
+            },
+            "poolId": "local_abcdefgh",
+            "clientId": "abcdefghijklmnopqrstuvwxy"
           },
           "database": {
             "host": "tyras-db",

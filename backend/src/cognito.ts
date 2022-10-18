@@ -4,6 +4,7 @@ import * as parse from "aws-jwt-verify/safe-json-parse";
 import * as http from "http";
 import * as t from "io-ts";
 import * as config from "./config";
+import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
 
 export const getToken = async (endpoint: string) => {
   return await new cognito.CognitoIdentityProviderClient({
@@ -20,56 +21,70 @@ export const getToken = async (endpoint: string) => {
   );
 };
 
-export const doVerify = async (
-  userPoolHost: string,
-  userPoolPort: number,
-  userPoolId: string,
-  token: string,
+export const createNonThrowingVerifier = async (
+  input: config.Config["authentication"],
 ) => {
-  // Unfortunately, can't use https://github.com/awslabs/aws-jwt-verify as it doesn't like custom URLs and thus will not work with local cognito pool emulator.
-  const issuer = `http://${userPoolHost}:${userPoolPort}/${userPoolId}`;
-  const verifier = verify.JwtRsaVerifier.create({
-    issuer,
-    // Don't check audience - we are checking access tokens
-    audience: null,
-    clientId: "abcdefghijklmnopqrstuvwxy",
-    tokenUse: "access",
-    scope: "aws.cognito.signin.user.admin",
-  });
-  // We must do this manually if we are using 'http' protocol.
-  verifier.cacheJwks(
-    config.throwOnError(
-      jwksContents.decode(
-        parse.safeJsonParse(
-          (
-            await getAsync({
-              host: userPoolHost,
-              port: userPoolPort,
-              path: `/${userPoolId}/.well-known/jwks.json`,
-              method: "GET",
-            })
-          ).data ?? "",
-        ),
+  const verifier = await createVerifier(input)();
+  return F.flow(
+    // Input: string token from headers (if present)
+    // If it isn't present, we will shortcircuit to error right away.
+    (token: string | undefined): E.Either<Error, string> =>
+      token ? E.right(token) : E.left(new Error("Token is missing")),
+    // Lift Either into TaskEither, as we will be invoking async things
+    TE.fromEither,
+    // Invoke the asynchronous method (only if right = token was non-empty string)
+    TE.chain((token) =>
+      TE.tryCatch(
+        async () => await verifier.verify(token),
+        (e) => (e instanceof Error ? e : new Error(`${e}`)),
       ),
     ),
-    issuer,
+    // 'Merge' both left and right
+    TE.getOrElseW((error) => T.of(error)),
   );
-  return await verifier.verify(token);
 };
 
-export const getAsync = (opts: http.RequestOptions) =>
+export const createVerifier = ({
+  connection,
+  poolId,
+  clientId,
+}: config.Config["authentication"]) =>
+  F.pipe(
+    // Start by creating either JWT verifier if connection info is passed
+    // Or Cognito verifier if no connection info
+    TE.fromEither<
+      ReturnType<typeof createCognitoVerifier>,
+      ReturnType<typeof createJwtVerifier>
+    >(
+      connection
+        ? E.right(createJwtVerifier(clientId, poolId, connection))
+        : E.left(createCognitoVerifier(clientId, poolId)),
+    ),
+    // "Join" either-or into union type
+    TE.map((jwtVerifier) =>
+      jwtVerifier.connection.scheme === "http"
+        ? // Side-effect: explicitly cache JWKS info if using http connection (as we do in local setup)
+          // Verifier uses fetch API and it refuses to work on unencrypted http.
+          explicitlyCacheJwks(poolId, jwtVerifier)
+        : TE.left<typeof jwtVerifier["verifier"], Error>(jwtVerifier.verifier),
+    ),
+    // Convert Either<X, Either<Y,Z>> to Either<X | Y, Z>
+    TE.flattenW,
+    // Change Either<X,Y> to Either<Y,X>
+    TE.swap,
+    // 'Merge' both left (error) and right (verifier)
+    TE.getOrElseW((error) => T.of(error)),
+    // Throw if instanceof Error
+    T.map(config.throwIfError),
+  );
+
+const httpGetAsync = (opts: Omit<http.RequestOptions, "method">) =>
   new Promise<{
     headers: http.IncomingHttpHeaders;
     data: string | undefined;
   }>((resolve, reject) => {
-    // const agent =
-    //   opts.protocol === "http:"
-    //     ? undefined
-    //     : new https.Agent({
-    //         rejectUnauthorized: false,
-    //       });
     const writeable = http
-      .request(opts, (resp) => {
+      .request({ ...opts, method: "GET" }, (resp) => {
         resp.setEncoding("utf8");
         let data: string | undefined;
         const headers = resp.headers;
@@ -102,7 +117,7 @@ export const getAsync = (opts: http.RequestOptions) =>
     writeable.end();
   });
 
-export class RequestError extends Error {
+class RequestError extends Error {
   public constructor(
     public readonly statusCode: number | undefined,
     message: string,
@@ -111,7 +126,7 @@ export class RequestError extends Error {
   }
 }
 
-export const getErrorMessage = (statusCode: number | undefined) =>
+const getErrorMessage = (statusCode: number | undefined) =>
   `Status code: ${statusCode}`;
 
 const jwksContents = t.type({
@@ -130,3 +145,69 @@ const jwksContents = t.type({
     ]),
   ),
 });
+
+const createJwtVerifier = (
+  clientId: string,
+  userPoolId: string,
+  connectionFromConfig: config.ConfigAuthenticationConnection,
+) => {
+  const connection = {
+    ...connectionFromConfig,
+    scheme: connectionFromConfig.scheme ?? "https",
+  };
+  const issuer = `${connection.scheme}://${connection.host}:${connection.port}/${userPoolId}`;
+  return {
+    connection,
+    issuer,
+    verifier: verify.JwtRsaVerifier.create({
+      issuer,
+      audience: null,
+      ...verifierProps(clientId),
+    }),
+  };
+};
+
+const createCognitoVerifier = (clientId: string, userPoolId: string) =>
+  verify.CognitoJwtVerifier.create({
+    userPoolId,
+    ...verifierProps(clientId),
+  });
+
+const verifierProps = (clientId: string) => ({
+  clientId,
+  tokenUse: "access" as const,
+  scope: "aws.cognito.signin.user.admin",
+});
+
+const explicitlyCacheJwks = (
+  userPoolId: string,
+  {
+    connection: { host, port },
+    verifier,
+  }: ReturnType<typeof createJwtVerifier>,
+) =>
+  F.pipe(
+    // Start by right away invoking http get asynchronously
+    TE.tryCatch(
+      () =>
+        httpGetAsync({
+          host,
+          port,
+          path: `/${userPoolId}/.well-known/jwks.json`,
+        }),
+      (e) => (e instanceof Error ? e : new Error(`${e}`)),
+    ),
+    // On success - parse JSON
+    TE.map(({ data }) => parse.safeJsonParse(data ?? "")),
+    // Validate parsed JSON at runtime against shape defined in "jwksContents"
+    TE.chainW((contents) => TE.fromEither(jwksContents.decode(contents))),
+    // Transform validation error of io-ts into JS Error object
+    // As side-effect, cache the parsed JWKS information to verifier
+    TE.bimap(config.getErrorObject, (jwks) => {
+      verifier.cacheJwks(jwks);
+      return verifier;
+    }),
+    // Swap right <-> left.
+    // This makes sense in createVerifier, as flattenW is called after calling this
+    TE.swap,
+  );

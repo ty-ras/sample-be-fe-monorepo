@@ -9,11 +9,12 @@ import * as cognito from "./cognito";
 const main = async () => {
   const { authentication, http, database } =
     await config.acquireConfigurationOrThrow();
-  await cognito.doVerify(
-    authentication.host,
-    authentication.port,
-    authentication.poolId,
-    "",
+  const verifier = await cognito.createNonThrowingVerifier(authentication);
+  console.log(
+    "TEST TOKEN",
+    await cognito.getToken(
+      `http://${authentication.connection?.host}:${authentication.connection?.port}`,
+    ),
   );
   await listenAsync(
     server.createServer({
@@ -27,12 +28,18 @@ const main = async () => {
             data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
           ),
         ),
-      createState: ({ stateInfo: statePropertyNames }) => {
+      createState: async ({ stateInfo: statePropertyNames, context }) => {
         const state: Partial<api.State> = {};
         for (const propertyName of statePropertyNames) {
           if (propertyName === "username") {
-            // TODO extract username from JWT token
-            state.username = undefined;
+            const jwtPropsOrError = await verifier(
+              context.headers["authorization"],
+            )();
+            if (jwtPropsOrError instanceof Error) {
+              console.error("Token validation error: ", jwtPropsOrError);
+            } else {
+              state.username = jwtPropsOrError.username?.toString();
+            }
           } else {
             // TODO e.g. group names etc
           }
