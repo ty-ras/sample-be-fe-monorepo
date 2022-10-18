@@ -1,13 +1,16 @@
 import type * as ep from "@ty-ras/endpoint";
 import * as data from "@ty-ras/data-io-ts";
-import * as dataBE from "@ty-ras/data-backend";
 import * as t from "io-ts";
-import * as f from "fp-ts";
+import { function as F, either as E } from "fp-ts";
 import * as d from "@ty-ras/data";
+import * as pg from "postgres";
 
-export const endpointState = <TStateSpec extends TStateBase>(
+export const endpointState = <TStateSpec extends object>(
   spec: TStateSpec,
-): ep.EndpointStateValidator<StateInfo, GetState<TStateSpec>> => {
+): ep.EndpointStateValidator<
+  StateInfo<keyof TStateSpec>,
+  GetState<TStateSpec>
+> => {
   const entries = Object.entries(spec);
   const validator = t.intersection([
     t.type(
@@ -19,6 +22,7 @@ export const endpointState = <TStateSpec extends TStateBase>(
             fullStateValidator.props[propName as keyof State],
           ]),
       ),
+      "MandatoryState",
     ),
     t.partial(
       Object.fromEntries(
@@ -29,18 +33,21 @@ export const endpointState = <TStateSpec extends TStateBase>(
             fullStateValidator.props[propName as keyof State],
           ]),
       ),
+      "OptionalState",
     ),
   ]);
   return {
-    stateInfo: entries.map(([propName]) => propName as keyof State),
+    stateInfo: entries.map(([propName]) => propName) as unknown as StateInfo<
+      keyof TStateSpec
+    >,
     validator: (input) =>
-      f.function.pipe(
+      F.pipe(
         // Start with input
         input,
         // Validate the input - the result will be success or error
         validator.decode,
         // Perform transformation in case of both success and error
-        f.either.bimap(
+        E.bimap(
           // On error, check if error is about any property name related to authentication state
           (errors) =>
             errors.some((error) =>
@@ -63,26 +70,39 @@ export const endpointState = <TStateSpec extends TStateBase>(
           }),
         ),
         // "Merge" the result of previous operation as TyRAS operates on type unions, not either-or constructs.
-        f.either.fold(
-          (
-            error,
-          ): // We need to help compiler a little bit with return type
-          ReturnType<dataBE.StateValidator<GetState<TStateSpec>>> => error,
-          (data) => data,
-        ),
+        E.getOrElseW((e) => e),
       ),
   };
 };
+
+// instanceOf is not part of io-ts, see also discussion https://github.com/gcanti/io-ts/issues/66
+// It says it is 'bad idea' and advices to use smart constructors and option-monads
+// It makes sense if everything you write and use is strictly functional, but in this case, I rather not.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const instanceOf = <T extends abstract new (...args: any) => any>(
+  ctor: T,
+  className: string,
+) =>
+  new t.Type<InstanceType<T>>(
+    `class ${className}`,
+    (i): i is InstanceType<T> => i instanceof ctor,
+    (i, context) => (i instanceof ctor ? t.success(i) : t.failure(i, context)),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    (a) => a,
+  );
 
 const authenticationStateValidator = t.type({
   username: t.string,
   // More can be added: groupNames, etc
 });
 
+export class Database {
+  public constructor(public readonly db: pg.Sql) {}
+}
+
 const fullStateValidator = t.type({
   ...authenticationStateValidator.props,
-  // TODO:
-  // db: DBConnectionPool
+  db: instanceOf(Database, "Database"),
 });
 
 const AUTHENTICATION_PROPS = d.transformEntries(
@@ -100,11 +120,11 @@ export const filterAuthenticatedProperties = (
 
 export type State = t.TypeOf<typeof fullStateValidator>;
 
-export type StateInfo = ReadonlyArray<keyof State>;
+export type StateInfo<T = keyof State> = ReadonlyArray<T>;
 
 export type TStateBase = { [P in keyof State]: boolean };
 
-export type GetState<TStateSpec extends TStateBase> = {
+export type GetState<TStateSpec> = {
   [P in keyof State & NonOptionalStateKeys<TStateSpec>]: State[P];
 } & {
   [P in keyof State &
@@ -114,3 +134,21 @@ export type GetState<TStateSpec extends TStateBase> = {
 export type NonOptionalStateKeys<T> = {
   [P in keyof T]-?: true extends T[P] ? P : never;
 }[keyof T];
+
+// This is to fix Array.isArray type-inference not working for ReadonlyArray
+// https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1217386617
+type IfUnknownOrAny<T, Y, N> = unknown extends T ? Y : N;
+
+type ArrayType<T> = IfUnknownOrAny<
+  T,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T[] extends T ? T[] : any[] & T,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Extract<T, readonly any[]>
+>;
+
+declare global {
+  interface ArrayConstructor {
+    isArray<T>(arg: T): arg is ArrayType<T>;
+  }
+}

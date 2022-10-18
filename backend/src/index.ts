@@ -1,14 +1,19 @@
 /* eslint-disable no-console */
 import * as server from "@ty-ras/server-node";
 import * as data from "@ty-ras/data";
+import * as pg from "postgres";
 import * as api from "./api";
-import type * as net from "net";
 import * as config from "./config";
 import * as cognito from "./cognito";
 
+import type * as net from "net";
+
 const main = async () => {
-  const { authentication, http, database } =
-    await config.acquireConfigurationOrThrow();
+  const {
+    authentication,
+    http,
+    database: { dbName, ...database },
+  } = await config.acquireConfigurationOrThrow();
   const verifier = await cognito.createNonThrowingVerifier(authentication);
   console.log(
     "TEST TOKEN",
@@ -40,6 +45,13 @@ const main = async () => {
             } else {
               state.username = jwtPropsOrError.username?.toString();
             }
+          } else if (propertyName === "db") {
+            state.db = new api.Database(
+              pg.default({
+                ...database,
+                database: dbName,
+              }),
+            );
           } else {
             // TODO e.g. group names etc
           }

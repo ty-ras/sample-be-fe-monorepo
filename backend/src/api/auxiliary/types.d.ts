@@ -8,12 +8,12 @@ import type * as state from "./state";
 export type EndpointSpec<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   TFunctionality extends (...args: any) => any,
-  TStateSpec extends state.TStateBase,
+  TStateSpec extends object = { db: true },
 > = dataBE.EndpointSpec<
   TProtocolSpec,
   TFunctionality,
   server.ServerContext,
-  ReadonlyArray<keyof TStateSpec>,
+  ReadonlyArray<keyof TStateSpec & keyof state.State>,
   state.GetState<TStateSpec>,
   TMetadataProviders
 >;

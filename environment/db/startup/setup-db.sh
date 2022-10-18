@@ -19,8 +19,11 @@ psqlq \
   -c "CREATE ROLE ${TYRAS_DB_BE_ROLENAME} NOLOGIN;
 CREATE ROLE ${TYRAS_DB_BE_USERNAME} NOINHERIT LOGIN PASSWORD '${TYRAS_DB_BE_PASSWORD}' IN ROLE ${TYRAS_DB_BE_ROLENAME};"
 
-# Run migrations
-for SQL_FILE in $(find '/migrations' -type f -mindepth 1 -maxdepth 1 -name '*.sql' | sort); do
+# Run migrations (poor man's version of Flyway)
+for SQL_FILE in $(find '/migrations' -type f -mindepth 1 -maxdepth 1 -name 'V*.sql' | sort); do
   psqlqd -f "${SQL_FILE}"
 done
 
+for SQL_FILE in $(find '/migrations' -type f -mindepth 1 -maxdepth 1 -name 'R*.sql' | sort); do
+  psqlqd -f "${SQL_FILE}"
+done

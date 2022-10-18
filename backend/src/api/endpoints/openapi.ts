@@ -33,12 +33,12 @@ const removeAuthenticatedOperations = (
   );
   return originalPathsLength > unauthenticatedPaths.length
     ? unauthenticatedPaths.length > 0
-      ? {
+      ? removeSecuritySchemeas({
           ...metadata,
           paths: Object.fromEntries(unauthenticatedPaths),
-        }
+        })
       : undefined
-    : metadata;
+    : removeSecuritySchemeas(metadata);
 };
 
 function* getUnauthenticatedPathObjects(metadata: openapi.Document) {
@@ -74,4 +74,20 @@ const removeOperations = (
     delete shallowClone[method];
   }
   return shallowClone;
+};
+
+const removeSecuritySchemeas = ({
+  components,
+  ...doc
+}: openapi.Document): openapi.Document => {
+  if (components && "securitySchemes" in components) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { securitySchemes, ...otherComponents } = components;
+    if (Object.keys(otherComponents).length > 0) {
+      components = otherComponents;
+    } else {
+      components = undefined;
+    }
+  }
+  return components ? { ...doc, components } : doc;
 };
