@@ -11,7 +11,7 @@ jobs:
   build_and_test:
     strategy:
       matrix:
-        dir: [ protocol, backend ]
+        dir: [ protocol, backend, frontend ]
     runs-on: ubuntu-latest
     name: Build and test ${{ matrix.dir }}
     steps:

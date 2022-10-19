@@ -65,7 +65,6 @@ export const startServer = async ({
     http.host,
     http.port,
   );
-  console.info("Server started");
 };
 
 // TODO move this to @ty-ras/server

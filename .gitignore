@@ -8,3 +8,5 @@ coverage
 */tsconfig*.json
 */src/protocol.d.ts
 !protocol/src/protocol.d.ts
+# Frontend is special
+!frontend/tsconfig*.json
