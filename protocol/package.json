@@ -1,6 +1,7 @@
 {
-  "name": "just-to-make-ide-work",
-  "version": "0.10.0",
+  "name": "@ty-ras/sample-be-fe-monorepo-protocol",
+  "version": "0.11.0",
+  "private": true,
   "author": {
     "name": "Stanislav Muhametsin",
     "email": "346799+stazz@users.noreply.github.com",
@@ -35,7 +36,6 @@
     "build:run": "yarn run lint && yarn run tsc",
     "build:ci": "yarn run build:run",
     "lint": "eslint ./src --ext .ts,.tsx",
-    "run-server": "ts-node src",
     "tsc": "tsc --project tsconfig.build.json",
     "test:coverage": "echo TODO tests",
     "test:run": "echo TODO tests"
