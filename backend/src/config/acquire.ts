@@ -8,17 +8,12 @@ export const acquireConfigurationOrThrow = () =>
   // We keep errors as TLeft of Either<TLeft, TRight>, and data in TRight.
   F.pipe(
     // Start with string from process environment
-    E.right(process.env[CONFIG_ENV_VAR_NAME]),
     // Check that it is non-empty non-undefined string.
-    // We use chainW instead of map because we return EitherOr, and chainW = map + flatten (+ 'W'iden types)
-    E.chainW((str) =>
-      str
-        ? E.right(str)
-        : E.left(
-            `Please specify configuration as inline JSON string or path to file in "${CONFIG_ENV_VAR_NAME}" env variable.`,
-          ),
-    ),
+    E.fromNullable(
+      `Please specify configuration as inline JSON string or path to file in "${CONFIG_ENV_VAR_NAME}" env variable.`,
+    )(process.env[CONFIG_ENV_VAR_NAME]),
     // Check the string contents - should we treat it as JSON string or path to file?
+    // We use chainW instead of map because we return EitherOr, and chainW = map + flatten (+ 'W'iden types)
     E.chainW(extractConfigStringType),
     // We may need to use async now (in case of file path), so lift Either into TaskEither (Promisified version of Either)
     TE.fromEither,
