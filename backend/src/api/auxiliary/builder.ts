@@ -33,7 +33,7 @@ export const createBuilders = () => {
                     name: "authentication",
                     scheme: {
                       type: "http",
-                      scheme: "bearer ",
+                      scheme: AUTH_SCHEME,
                     },
                   },
                 ]
@@ -43,6 +43,8 @@ export const createBuilders = () => {
     ),
   };
 };
+
+export const AUTH_SCHEME = "bearer ";
 
 export type PlainBuilder = ReturnType<typeof createBuilders>["noMetadata"];
 export type Builder = ReturnType<typeof createBuilders>["withOpenAPI"];

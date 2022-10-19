@@ -3,8 +3,9 @@ import * as verify from "aws-jwt-verify";
 import * as parse from "aws-jwt-verify/safe-json-parse";
 import * as http from "http";
 import * as t from "io-ts";
-import * as config from "./config";
 import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
+import * as config from "./config";
+import * as services from "./services";
 
 export const getToken = async (endpoint: string) => {
   return await new cognito.CognitoIdentityProviderClient({
@@ -25,19 +26,33 @@ export const createNonThrowingVerifier = async (
   input: config.Config["authentication"],
 ) => {
   const verifier = await createVerifier(input)();
+  const checkTokenNotNull = E.fromNullable(new Error("Token is missing"));
   return F.flow(
     // Input: string token from headers (if present)
     // If it isn't present, we will shortcircuit to error right away.
-    (token: string | undefined): E.Either<Error, string> =>
-      token ? E.right(token) : E.left(new Error("Token is missing")),
+    (scheme: string, token: string | undefined) =>
+      F.pipe(
+        // Will be left (Error) if token is nully, and right (non-nully token itself) otherwise
+        checkTokenNotNull(token),
+        // Validate that token string starts with given scheme (case-insensitively)
+        // If it doesn't, return left (Error)
+        // If it does, return right (the actual token without scheme prefix)
+        E.chain((nonNullToken) => {
+          const seenScheme = nonNullToken.substring(0, scheme.length);
+          if (seenScheme.toLowerCase() === scheme) {
+            return E.right(nonNullToken.substring(scheme.length));
+          } else {
+            return E.left(
+              new Error(`Token has invalid scheme "${seenScheme}".`),
+            );
+          }
+        }),
+      ),
     // Lift Either into TaskEither, as we will be invoking async things
     TE.fromEither,
     // Invoke the asynchronous method (only if right = token was non-empty string)
     TE.chain((token) =>
-      TE.tryCatch(
-        async () => await verifier.verify(token),
-        (e) => (e instanceof Error ? e : new Error(`${e}`)),
-      ),
+      TE.tryCatch(async () => await verifier.verify(token), services.makeError),
     ),
     // 'Merge' both left and right
     TE.getOrElseW((error) => T.of(error)),
@@ -75,7 +90,7 @@ export const createVerifier = ({
     // 'Merge' both left (error) and right (verifier)
     TE.getOrElseW((error) => T.of(error)),
     // Throw if instanceof Error
-    T.map(config.throwIfError),
+    T.map(services.throwIfError),
   );
 
 const httpGetAsync = (opts: Omit<http.RequestOptions, "method">) =>
@@ -195,7 +210,7 @@ const explicitlyCacheJwks = (
           port,
           path: `/${userPoolId}/.well-known/jwks.json`,
         }),
-      (e) => (e instanceof Error ? e : new Error(`${e}`)),
+      services.makeError,
     ),
     // On success - parse JSON
     TE.map(({ data }) => parse.safeJsonParse(data ?? "")),
@@ -203,7 +218,7 @@ const explicitlyCacheJwks = (
     TE.chainW((contents) => TE.fromEither(jwksContents.decode(contents))),
     // Transform validation error of io-ts into JS Error object
     // As side-effect, cache the parsed JWKS information to verifier
-    TE.bimap(config.getErrorObject, (jwks) => {
+    TE.bimap(services.getErrorObject, (jwks) => {
       verifier.cacheJwks(jwks);
       return verifier;
     }),

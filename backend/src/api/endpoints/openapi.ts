@@ -33,12 +33,12 @@ const removeAuthenticatedOperations = (
   );
   return originalPathsLength > unauthenticatedPaths.length
     ? unauthenticatedPaths.length > 0
-      ? removeSecuritySchemeas({
+      ? removeSecuritySchemes({
           ...metadata,
           paths: Object.fromEntries(unauthenticatedPaths),
         })
       : undefined
-    : removeSecuritySchemeas(metadata);
+    : removeSecuritySchemes(metadata);
 };
 
 function* getUnauthenticatedPathObjects(metadata: openapi.Document) {
@@ -76,7 +76,7 @@ const removeOperations = (
   return shallowClone;
 };
 
-const removeSecuritySchemeas = ({
+const removeSecuritySchemes = ({
   components,
   ...doc
 }: openapi.Document): openapi.Document => {

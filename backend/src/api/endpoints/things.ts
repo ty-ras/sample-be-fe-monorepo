@@ -17,6 +17,43 @@ export const createThingsEndpoints = (builder: aux.Builder) => [
   }),
 ];
 
+const getThings2 = aux.createServiceEndpoint(services.getThings, {
+  db: true,
+  username: true,
+})<protocol.APIGetThings>(
+  ({
+    state: {
+      db: { db },
+      username,
+    },
+  }) => [username, db],
+  {
+    method: "GET",
+    mdArgs: {
+      openapi: {
+        urlParameters: undefined,
+        queryParameters: undefined,
+        requestHeaders: undefined,
+        body: undefined,
+        output: {
+          description: "",
+          mediaTypes: {
+            "application/json": {
+              example: [
+                {
+                  id: "DummyID",
+                },
+              ],
+            },
+          },
+        },
+        responseHeaders: undefined,
+        operation: {},
+      },
+    },
+  },
+);
+
 const getThings: aux.EndpointSpec<
   protocol.APIGetThings,
   typeof services.getThings,
@@ -28,17 +65,11 @@ const getThings: aux.EndpointSpec<
       db: { db },
       username,
     },
-  }) => await services.getThings(username, db),
+  }) => await services.getThings.functionality(username, db),
   method: "GET",
   // Remember that io-ts types 'encode' is identity in all cases when data is raw JSON objects (as opposed to e.g. classes)
   // This means that we will not do "double work" by first service function doing validation on SQL rows, and then REST API validating service function array.
-  output: data.responseBody(
-    t.array(
-      t.type({
-        id: t.string,
-      }),
-    ),
-  ),
+  output: data.responseBody(services.getThings.validation),
   mdArgs: {
     openapi: {
       urlParameters: undefined,
@@ -63,6 +94,8 @@ const getThings: aux.EndpointSpec<
   },
 };
 
+// Notice: this is not behind authentication.
+// Just to demonstrate how non-authenticated endpoints can still access e.g. DB
 const getThingsCount: aux.EndpointSpec<
   protocol.APIThingsSummary,
   typeof services.getThingsCount
@@ -72,7 +105,7 @@ const getThingsCount: aux.EndpointSpec<
     state: {
       db: { db },
     },
-  }) => services.getThingsCount(db),
+  }) => services.getThingsCount.functionality(db),
   method: "GET",
   output: data.responseBody(t.number),
   mdArgs: {

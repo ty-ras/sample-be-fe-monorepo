@@ -1,9 +1,8 @@
-import * as t from "io-ts";
 import { either as E, taskEither as TE, function as F, task as T } from "fp-ts";
-import * as tyrasData from "@ty-ras/data-io-ts";
 import * as process from "process";
 import * as fs from "fs/promises";
 import * as data from "./data";
+import * as services from "../services";
 
 export const acquireConfigurationOrThrow = () =>
   // We keep errors as TLeft of Either<TLeft, TRight>, and data in TRight.
@@ -29,7 +28,7 @@ export const acquireConfigurationOrThrow = () =>
         async () =>
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
           JSON.parse(type === "JSON" ? str : await fs.readFile(str, "utf8")),
-        (e) => (e instanceof Error ? e : new Error(`${e}`)),
+        services.makeError,
       ),
     ),
     // Flatmap again, this time using the IO-TS validator.
@@ -38,8 +37,9 @@ export const acquireConfigurationOrThrow = () =>
     TE.chainW((parsedJSON) => TE.fromEither(data.config.decode(parsedJSON))),
 
     // Extract inner value, or transform various error types into one Error
-    TE.getOrElseW((error) => T.of(getErrorObject(error))),
-    T.map(throwIfError),
+    TE.getOrElseW((error) => T.of(services.getErrorObject(error))),
+    // Throw if it is an error
+    T.map(services.throwIfError),
   )();
 
 type ConfigStringType = { type: "JSON" | "file"; str: string };
@@ -71,19 +71,3 @@ const extractConfigStringType = (
           .map((s) => `"${s}"`)
           .join(",")}.`,
       );
-
-export const getErrorObject = (error: string | Error | t.Errors): Error =>
-  error instanceof Error
-    ? error
-    : new Error(
-        typeof error === "string"
-          ? error
-          : tyrasData.createErrorObject(error).getHumanReadableMessage(),
-      );
-
-export const throwIfError = <T>(obj: T): Exclude<T, Error> => {
-  if (obj instanceof Error) {
-    throw obj;
-  }
-  return obj as Exclude<T, Error>;
-};

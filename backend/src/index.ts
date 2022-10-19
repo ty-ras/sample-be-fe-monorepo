@@ -1,29 +1,29 @@
 /* eslint-disable no-console */
 import * as server from "@ty-ras/server-node";
 import * as data from "@ty-ras/data";
-import * as pg from "postgres";
 import * as api from "./api";
 import * as config from "./config";
-import * as cognito from "./cognito";
+import * as auth from "./auth";
+import * as db from "./db";
 
 import type * as net from "net";
 
 const main = async () => {
-  const {
-    authentication,
-    http,
-    database: { dbName, ...database },
-  } = await config.acquireConfigurationOrThrow();
-  const verifier = await cognito.createNonThrowingVerifier(authentication);
+  const { authentication, http, database } =
+    await config.acquireConfigurationOrThrow();
+  const verifier = await auth.createNonThrowingVerifier(authentication);
+  const dbPool = db.createDBPool(database);
   console.log(
     "TEST TOKEN",
-    await cognito.getToken(
+    await auth.getToken(
       `http://${authentication.connection?.host}:${authentication.connection?.port}`,
     ),
   );
   await listenAsync(
     server.createServer({
+      // Endpoints comprise the REST API as a whole
       endpoints: api.createEndpoints(),
+      // React on various server events - in case of this sample, just log them to console.
       events: (eventName, eventArgs) =>
         console.info(
           "EVENT",
@@ -33,11 +33,16 @@ const main = async () => {
             data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
           ),
         ),
+      // Create the state object for endpoints
+      // Endpoints specify which properties of State they want, and this callback tries to provide them
+      // The final validation of the returned state object is always done by endpoint specification, and thus it is enough to just attempt to e.g. provide username.
+      // Some endpoints will then fail on username missing, and some others can recover from that.
       createState: async ({ stateInfo: statePropertyNames, context }) => {
         const state: Partial<api.State> = {};
         for (const propertyName of statePropertyNames) {
           if (propertyName === "username") {
             const jwtPropsOrError = await verifier(
+              api.AUTH_SCHEME,
               context.headers["authorization"],
             )();
             if (jwtPropsOrError instanceof Error) {
@@ -46,12 +51,7 @@ const main = async () => {
               state.username = jwtPropsOrError.username?.toString();
             }
           } else if (propertyName === "db") {
-            state.db = new api.Database(
-              pg.default({
-                ...database,
-                database: dbName,
-              }),
-            );
+            state.db = dbPool;
           } else {
             // TODO e.g. group names etc
           }

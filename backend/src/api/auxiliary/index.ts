@@ -10,3 +10,4 @@ export type {
 } from "./types";
 export * from "./state";
 export * from "./builder";
+export * from "./service";

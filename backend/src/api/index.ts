@@ -2,7 +2,12 @@ import * as prefix from "@ty-ras/endpoint-prefix";
 import * as aux from "./auxiliary";
 import * as endpoints from "./endpoints";
 
-export { State, filterAuthenticatedProperties, Database } from "./auxiliary";
+export {
+  State,
+  filterAuthenticatedProperties,
+  Database,
+  AUTH_SCHEME,
+} from "./auxiliary";
 
 export const createEndpoints = () => {
   // Create builder: 'initial' which doesn't require any metadata added to endpoints
