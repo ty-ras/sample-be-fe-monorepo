@@ -34,7 +34,7 @@
   },
   "scripts": {
     "build:run": "yarn run lint && yarn run tsc",
-    "build:ci": "yarn run build:run",
+    "build:ci": "yarn run tsc",
     "lint": "eslint ./src --ext .ts,.tsx",
     "tsc": "tsc --project tsconfig.build.json",
     "test:coverage": "echo TODO tests",
