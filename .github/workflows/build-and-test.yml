@@ -27,6 +27,10 @@ jobs:
 
           ./scripts/install.sh '${{ matrix.dir }}' --frozen-lockfile
 
+          if [[ '${{ matrix.dir }}' != 'protocol' ]]; then
+            cp protocol/src/protocol.d.ts '${{ matrix.dir }}/src'
+          fi
+
       - id: test
         name: Test ${{ matrix.dir }}
         shell: bash
