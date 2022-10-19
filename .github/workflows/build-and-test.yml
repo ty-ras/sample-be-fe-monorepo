@@ -6,31 +6,12 @@ on:
       fetch-depth:
         required: true
         type: number
-      pre-run-function:
-        required: false
-        type: string
-        default: |
-          tyras_pre_run ()
-          {
-            echo 'No pre-run.'
-          }
-      post-run-function:
-        required: false
-        type: string
-        default: |
-          tyras_post_run ()
-          {
-            echo 'No post-run.'
-          }
-    secrets:
-      npm-publish-token:
-        required: false
 
 jobs:
   build_and_test:
     strategy:
       matrix:
-        dir: [ backend ]
+        dir: [ protocol, backend ]
     runs-on: ubuntu-latest
     name: Build and test ${{ matrix.dir }}
     steps:
@@ -88,13 +69,3 @@ jobs:
       #     flags: ${{ matrix.dir }}
       #     directory: ${{ matrix.dir }}
 
-      - id: finalize
-        name: Finalize ${{ matrix.dir }}
-        shell: bash
-        run: |
-          set -e
-
-          ${{ inputs.post-run-function }}
-          tyras_post_run '${{ matrix.dir }}'
-        env:
-          NPM_PUBLISH_TOKEN: ${{ secrets.npm-publish-token }}
