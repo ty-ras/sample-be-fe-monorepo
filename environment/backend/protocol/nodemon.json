@@ -1,0 +1,7 @@
+{
+  "watch": [
+    "/tyras/protocol/src"
+  ],
+  "ext": "ts",
+  "exec": "echo '// THIS FILE IS COPIED FROM /protocol/src/protocol.d.ts, MODIFICATIONS WILL BE OVERWRITTEN' | cat - /tyras/protocol/src/protocol.d.ts > /tyras/code/src/protocol.d.ts && echo 'Started watching protocol file'"
+}

@@ -1,0 +1,7 @@
+{
+  "watch": [
+    "/tyras/code/src"
+  ],
+  "ext": "ts",
+  "exec": "yarn --cwd /tyras/code run run-server"
+}

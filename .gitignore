@@ -6,3 +6,5 @@ coverage
 .yarn
 */.eslintrc*.cjs
 */tsconfig*.json
+*/src/protocol.d.ts
+!protocol/src/protocol.d.ts

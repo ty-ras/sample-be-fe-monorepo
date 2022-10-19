@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: "${TYRAS_ROOT_DIR}/environment"
+      dockerfile: "${TYRAS_ROOT_DIR}/environment/Dockerfile.node"
+      args:
+        NODE_VERSION: ${TYRAS_NODE_VERSION_BE}
+    ports:
+      - 127.0.0.1:8901:8901
+    volumes:
+      - "${TYRAS_ROOT_DIR}/backend/:/tyras/code/:rw"
+      - "${TYRAS_ROOT_DIR}/protocol/:/tyras/protocol/:ro"
+      - "${TYRAS_ROOT_DIR}/environment/backend/:/tyras/config/:ro"
+      - "${TYRAS_ROOT_DIR}/tsconfig.json:/tyras/tsconfig.json:ro"
+    environment:
+      TYRAS_BE_CONFIG: |
+        {
+          "http": {
+            "host": "0.0.0.0",
+            "port": 8901
+          },
+          "authentication": {
+            "connection": {
+              "host": "tyras-auth",
+              "port": 3999,
+              "scheme": "http"
+            },
+            "poolId": "local_abcdefgh",
+            "clientId": "abcdefghijklmnopqrstuvwxy"
+          },
+          "database": {
+            "host": "tyras-db",
+            "port": 5432,
+            "dbName": "tyras_db",
+            "username": "tyras_be_login",
+            "password": "tyras_be_login_pw"
+          }
+        }
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+
+        cd /tyras/code
+        yarn install --frozen-lockfile
+        cd /tyras/config/protocol
+        nodemon ${TYRAS_NODEMON_ARGS} &
+        cd ../code
+        nodemon ${TYRAS_NODEMON_ARGS}
+    networks:
+      be-nw:
+  user-auth:
+    image: jagregory/cognito-local:3.21.1
+    environment:
+      PORT: 3999
+      DEBUG: 1
+    expose:
+      - 3999
+    # ports:
+    #   - 127.0.0.1:3999:3999
+    volumes:
+      - "${TYRAS_ROOT_DIR}/environment/.data/auth/:/app/.cognito/:rw"
+    networks:
+      be-nw:
+        aliases:
+          - tyras-auth
+  db:
+    image: postgres:14-alpine
+    environment:
+      # These are for Postgres itself
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_pw
+      # These are for initialization
+      TYRAS_DB_DATABASE: tyras_db
+      TYRAS_DB_BE_ROLENAME: tyras_be
+      TYRAS_DB_BE_USERNAME: tyras_be_login
+      TYRAS_DB_BE_PASSWORD: tyras_be_login_pw
+    expose:
+      - 5432
+    # ports:
+    #   - 127.0.0.1:5432:5432
+    networks:
+      be-nw:
+        aliases:
+          - tyras-db
+    volumes:
+      - "${TYRAS_ROOT_DIR}/environment/db/startup/:/docker-entrypoint-initdb.d/:ro"
+      - "${TYRAS_ROOT_DIR}/db/migrations/:/migrations/:ro"
+
+networks:
+  be-nw:

@@ -1,0 +1,5 @@
+{
+  "TokenConfig": {
+    "IssuerDomain": "http://tyras-auth:3999"
+  }
+}

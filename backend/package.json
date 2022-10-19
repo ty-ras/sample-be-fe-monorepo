@@ -1,0 +1,58 @@
+{
+  "name": "@ty-ras/sample-be-fe-monorepo-be",
+  "private": true,
+  "version": "0.11.0",
+  "author": {
+    "name": "Stanislav Muhametsin",
+    "email": "346799+stazz@users.noreply.github.com",
+    "url": "https://github.com/stazz"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ty-ras/sample-be-fe-monorepo"
+  },
+  "type": "module",
+  "dependencies": {
+    "@ty-ras/server-node": "0.11.1",
+    "@ty-ras/data-backend-io-ts": "0.11.4",
+    "@ty-ras/metadata-jsonschema-io-ts": "0.11.0",
+    "@ty-ras/metadata-openapi": "0.11.2",
+    "aws-jwt-verify": "3.1.0",
+    "fp-ts": "2.12.3",
+    "io-ts": "2.2.19",
+    "io-ts-types": "0.5.17",
+    "monocle-ts": "2.3.13",
+    "newtype-ts": "0.3.5",
+    "openapi-types": "12.0.2",
+    "postgres": "3.3.1",
+    "raw-body": "2.5.1"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "3.188.0",
+    "@babel/core": "7.19.3",
+    "@babel/eslint-parser": "7.19.1",
+    "@types/node": "18.7.18",
+    "@typescript-eslint/eslint-plugin": "5.38.0",
+    "@typescript-eslint/parser": "5.38.0",
+    "ava": "5.0.1",
+    "c8": "7.12.0",
+    "eslint": "8.23.1",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-prettier": "4.2.1",
+    "eslint-plugin-sonarjs": "0.15.0",
+    "prettier": "2.7.1",
+    "ts-node": "10.9.1",
+    "tsconfig-paths": "4.1.0",
+    "typescript": "4.8.4"
+  },
+  "scripts": {
+    "build:run": "yarn run lint && yarn run tsc",
+    "build:ci": "yarn run tsc",
+    "lint": "eslint ./src --ext .ts,.tsx",
+    "run-server": "ts-node src",
+    "tsc": "tsc --project tsconfig.build.json",
+    "test:coverage": "echo TODO tests",
+    "test:run": "echo TODO tests"
+  }
+}
