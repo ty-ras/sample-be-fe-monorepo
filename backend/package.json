@@ -29,7 +29,6 @@
     "raw-body": "2.5.1"
   },
   "devDependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "3.188.0",
     "@babel/core": "7.19.3",
     "@babel/eslint-parser": "7.19.1",
     "@types/node": "18.7.18",

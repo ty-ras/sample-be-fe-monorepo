@@ -10,3 +10,4 @@ coverage
 !protocol/src/protocol.d.ts
 # Frontend is special
 !frontend/tsconfig*.json
+!frontend/.eslintrc*.cjs

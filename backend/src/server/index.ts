@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import * as server from "@ty-ras/server-node";
 import * as data from "@ty-ras/data";
+import * as ep from "@ty-ras/endpoint";
 import * as api from "../api";
 import type * as config from "../config";
 import * as auth from "./auth";
@@ -10,21 +11,20 @@ import type * as net from "net";
 
 export const startServer = async ({
   authentication,
-  http,
+  http: { server: serverConfig, cors },
   database,
 }: config.Config) => {
   const verifier = await auth.createNonThrowingVerifier(authentication);
   const dbPool = db.createDBPool(database);
-  console.log(
-    "TEST TOKEN",
-    await auth.getToken(
-      `http://${authentication.connection?.host}:${authentication.connection?.port}`,
-    ),
-  );
   await listenAsync(
     server.createServer({
       // Endpoints comprise the REST API as a whole
-      endpoints: api.createEndpoints(),
+      endpoints: api.createEndpoints().map((endpoint) =>
+        ep.withCORSOptions(endpoint, {
+          origin: cors.frontendAddress,
+          allowHeaders: ["Content-Type"],
+        }),
+      ),
       // React on various server events - in case of this sample, just log them to console.
       events: (eventName, eventArgs) =>
         console.info(
@@ -62,8 +62,8 @@ export const startServer = async ({
         return state;
       },
     }),
-    http.host,
-    http.port,
+    serverConfig.host,
+    serverConfig.port,
   );
 };
 
