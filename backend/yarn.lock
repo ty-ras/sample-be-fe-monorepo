@@ -413,10 +413,10 @@
   resolved "https://registry.yarnpkg.com/@ty-ras/metadata-jsonschema/-/metadata-jsonschema-0.12.0.tgz#ad73edbdf3f1593a4e3eefa4562c28d334d4998f"
   integrity sha512-ZAYWR65OH644dB+8u2AsF6ehcJiqy2dGkwAwZu9ge2T02UUZOZA3s8etskd+UE4C6DPOKHsNkEabu15kSGYmSw==
 
-"@ty-ras/metadata-openapi@0.12.0":
-  version "0.12.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-openapi/-/metadata-openapi-0.12.0.tgz#46e10930e0f67affc6de5ee53e1ea67a33018f58"
-  integrity sha512-ncza5qi2jmYLYJ+/HLUxFQ2vNwHAab71SMz3kTLcBgwultQWA5nBfkCbs6SQ0q1WqmMZw+AzpgZ5U/drUOccbA==
+"@ty-ras/metadata-openapi@0.12.1":
+  version "0.12.1"
+  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-openapi/-/metadata-openapi-0.12.1.tgz#68a2b2c21d7349d562aba7cb90c4fc671384cfc1"
+  integrity sha512-rksdLoLTpKdzHBx+I8+nKp18VJg4e+2d4O3zcYJmvnINCXyzq0ZSawTr7Dg7daC/EA8Wx4voN6JHUyWFTjh9aA==
   dependencies:
     "@ty-ras/metadata" "0.12.0"
     "@ty-ras/metadata-jsonschema" "0.12.0"

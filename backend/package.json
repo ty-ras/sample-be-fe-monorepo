@@ -17,7 +17,7 @@
     "@ty-ras/server-node": "0.12.0",
     "@ty-ras/data-backend-io-ts": "0.12.0",
     "@ty-ras/metadata-jsonschema-io-ts": "0.12.0",
-    "@ty-ras/metadata-openapi": "0.12.0",
+    "@ty-ras/metadata-openapi": "0.12.1",
     "aws-jwt-verify": "3.1.0",
     "fp-ts": "2.12.3",
     "io-ts": "2.2.19",

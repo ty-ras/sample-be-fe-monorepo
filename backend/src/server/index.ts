@@ -43,7 +43,7 @@ export const startServer = async ({
         for (const propertyName of statePropertyNames) {
           if (propertyName === "username") {
             const jwtPropsOrError = await verifier(
-              api.AUTH_SCHEME,
+              `${api.AUTH_SCHEME} `,
               context.headers["authorization"],
             )();
             if (jwtPropsOrError instanceof Error) {

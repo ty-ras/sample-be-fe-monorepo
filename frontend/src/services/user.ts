@@ -16,9 +16,8 @@ interface User {
 
   lastSeenToken: string;
 
-  // TODO
   // Refreshes the token if needed.
-  //getTokenForAuthorization: () => Promise<string>;
+  getTokenForAuthorization: (() => Promise<string>) | undefined;
 }
 
 const authenticator = auth.createAuthenticator(
@@ -31,6 +30,7 @@ export const useUserStore = create<User>()(
     (set, get) => ({
       username: "",
       lastSeenToken: "",
+      getTokenForAuthorization: undefined,
       login: async (input) =>
         await F.pipe(
           // We are performing async so lift to TaskEither immediately
@@ -47,6 +47,7 @@ export const useUserStore = create<User>()(
           TE.chain(({ AuthenticationResult: authInfo, ...info }) =>
             authInfo
               ? F.pipe(
+                  // TODO decode also refresh token
                   E.bindTo("tokenString")(
                     nonEmptyStringValidation.decode(authInfo.AccessToken),
                   ),
@@ -60,7 +61,10 @@ export const useUserStore = create<User>()(
                     set({
                       username: tokenContents.username,
                       lastSeenToken: tokenString,
-                      // Set getTokenForAuthorization also here, since here we have access to refresh token
+                      getTokenForAuthorization: () =>
+                        // TODO check for expiration and refresh the token if needed
+                        // When refreshing, make sure that get().username === input.username to avoid setting token right after logging out.
+                        Promise.resolve(tokenString),
                     });
                     return info;
                   }),
@@ -88,6 +92,7 @@ export const useUserStore = create<User>()(
           set({
             username: "",
             lastSeenToken: "",
+            getTokenForAuthorization: undefined,
           });
         }
       },

@@ -1,14 +1,10 @@
 import { Box } from "@chakra-ui/react";
-import APIDoc, { APIDocProperties } from "./APIDoc";
+import APIDoc from "./APIDoc";
 
-const Content = ({ apiDocs }: ContentProps) => (
+const Content = () => (
   <Box>
-    <APIDoc {...apiDocs} />
+    <APIDoc />
   </Box>
 );
-
-export interface ContentProps {
-  apiDocs: APIDocProperties;
-}
 
 export default Content;
