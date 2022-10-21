@@ -1,13 +1,12 @@
 /* eslint-disable no-console */
 import * as server from "@ty-ras/server-node";
+import * as serverGeneric from "@ty-ras/server";
 import * as data from "@ty-ras/data";
 import * as ep from "@ty-ras/endpoint";
 import * as api from "../api";
 import type * as config from "../config";
 import * as auth from "./auth";
 import * as db from "./db";
-
-import type * as net from "net";
 
 export const startServer = async ({
   authentication,
@@ -16,7 +15,7 @@ export const startServer = async ({
 }: config.Config) => {
   const verifier = await auth.createNonThrowingVerifier(authentication);
   const dbPool = db.createDBPool(database);
-  await listenAsync(
+  await serverGeneric.listenAsync(
     server.createServer({
       // Endpoints comprise the REST API as a whole
       endpoints: api.createEndpoints().map((endpoint) =>
@@ -66,13 +65,3 @@ export const startServer = async ({
     serverConfig.port,
   );
 };
-
-// TODO move this to @ty-ras/server
-const listenAsync = (server: net.Server, host: string, port: number) =>
-  new Promise<void>((resolve, reject) => {
-    try {
-      server.listen(port, host, () => resolve());
-    } catch (e) {
-      reject(e);
-    }
-  });

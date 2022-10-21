@@ -350,10 +350,10 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.3.tgz#472eaab5f15c1ffdd7f8628bd4c4f753995ec79e"
   integrity sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==
 
-"@ty-ras/protocol@0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/protocol/-/protocol-0.10.0.tgz#10e51e76b0a914d01a3ec5f6cc20937159b5fc38"
-  integrity sha512-9tgJwIGjDAbfBcw2HlXx5db9GZLEVM7uz+NY51OFvnvkhQU6zZm6l9aNJGvMIJlr1ynP/nxNCx2eIdP+cNRTzQ==
+"@ty-ras/protocol@0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/protocol/-/protocol-0.12.0.tgz#9e1165462dc4cf6b8589a5ce314953fc6e7f14fd"
+  integrity sha512-w6vSHXBiint0FSmQyDwpmsxOSH70WeZHMACeELjEvGLvF3FM+kPg+i1EY+7fJvIKOEhWQQXeExc0WsKx3+oVdQ==
 
 "@types/istanbul-lib-coverage@^2.0.1":
   version "2.0.4"
