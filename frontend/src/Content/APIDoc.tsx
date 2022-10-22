@@ -6,33 +6,60 @@ import { callRawHTTP } from "../services/backend";
 import * as common from "../services/common";
 import * as t from "io-ts";
 import { function as F, task as T, taskEither as TE } from "fp-ts";
-import { Spinner, Text } from "@chakra-ui/react";
+import { Spinner, Text, Container } from "@chakra-ui/react";
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 const APIDoc = () => {
-  const [spec, setSpec] = useState<object | undefined>(undefined);
-  // Have this in order to re-render on login/logout
-  // This is because the resulting OpenAPI document will be different for logged-in user.
-  // We also don't want to refresh when
-  user.useUserStore((user) => user.username);
+  const username = user.useUserStore((user) => user.username);
+  const getToken = user.useUserStore((user) => user.getTokenForAuthorization);
+  const [state, setState] = useState<undefined | FetchedData<object>>(
+    undefined,
+  );
+
   useEffect(() => {
     void F.pipe(
-      TE.tryCatch(
-        async () =>
-          (await callRawHTTP({ method: "GET", url: "/openapi" })).body,
-        common.makeError,
+      TE.tryCatch(async () => await getToken?.(), common.makeError),
+      TE.chain((token) =>
+        TE.tryCatch(
+          async () =>
+            (
+              await callRawHTTP({
+                method: "GET",
+                url: "/openapi",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              })
+            ).body,
+          common.makeError,
+        ),
       ),
       TE.chainW((body) => TE.fromEither(t.UnknownRecord.decode(body))),
       TE.getOrElseW((error) => T.of(common.getErrorObject(error))),
-      T.map(setSpec),
+      T.map((data) => {
+        if (user.useUserStore.getState().username === username) {
+          setState({
+            username,
+            data,
+          });
+        }
+      }),
     )();
-  }, [setSpec]);
-  return spec === undefined ? (
-    <Spinner />
-  ) : spec instanceof Error ? (
-    <Text>Error!</Text>
+  }, [username, getToken]);
+  return typeof state === "object" ? (
+    state.data instanceof Error ? (
+      <Container>
+        <Text>Error!</Text>
+      </Container>
+    ) : (
+      <SwaggerUI spec={state.data} />
+    )
   ) : (
-    <SwaggerUI spec={spec} />
+    <Spinner />
   );
 };
 
 export default APIDoc;
+
+interface FetchedData<T> {
+  username: string;
+  data: T;
+}

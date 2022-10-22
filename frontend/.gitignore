@@ -1,1 +1,2 @@
 src/environment.ts
+*.log

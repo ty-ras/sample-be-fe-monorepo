@@ -29,3 +29,8 @@ export const throwIfError = <T>(obj: T): Exclude<T, Error> => {
 export const makeError = (e: unknown) =>
   // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   e instanceof Error ? e : new Error(`${e}`);
+
+export const handleError = (error: Error) => {
+  // For now, just console it
+  console.error(error);
+};

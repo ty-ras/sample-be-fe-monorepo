@@ -3,6 +3,7 @@ import { OpenAPIV3 as openapi } from "openapi-types";
 import * as data from "@ty-ras/data-backend-io-ts";
 import * as md from "@ty-ras/metadata-openapi";
 import * as t from "io-ts";
+import * as tls from "tls";
 
 export const createOpenAPIEndpoint = (
   builder: aux.PlainBuilder,
@@ -10,12 +11,25 @@ export const createOpenAPIEndpoint = (
 ) => {
   // Notice that this will be undefined if all operations are behind authentication
   const unauthenticatedMD = md.removeAuthenticatedOperations(metadata);
-
   return builder.atURL`/openapi`
     .forMethod("GET", aux.endpointState({ username: false }))
     .withoutBody(
       // Return OpenAPI document which doesn't have any information about authenticated endpoints for request which don't have username information
-      ({ state: { username } }) => (username ? metadata : unauthenticatedMD),
+      ({ state: { username }, context }) => {
+        let returnMD = username ? metadata : unauthenticatedMD;
+        if (returnMD) {
+          const host = context.req.headers["host"];
+          if (host) {
+            const scheme =
+              context.req.socket instanceof tls.TLSSocket ? "https" : "http";
+            returnMD = {
+              ...returnMD,
+              servers: [{ url: `${scheme}://${host}` }],
+            };
+          }
+        }
+        return returnMD;
+      },
       // Proper validator for OpenAPI objects is out of scope of this sample
       data.responseBody(t.unknown),
       // No metadata - as this is the metadata-returning endpoint itself

@@ -433,10 +433,10 @@
   resolved "https://registry.yarnpkg.com/@ty-ras/protocol/-/protocol-0.12.0.tgz#9e1165462dc4cf6b8589a5ce314953fc6e7f14fd"
   integrity sha512-w6vSHXBiint0FSmQyDwpmsxOSH70WeZHMACeELjEvGLvF3FM+kPg+i1EY+7fJvIKOEhWQQXeExc0WsKx3+oVdQ==
 
-"@ty-ras/server-node@0.12.0":
-  version "0.12.0"
-  resolved "https://registry.yarnpkg.com/@ty-ras/server-node/-/server-node-0.12.0.tgz#03f838cedb7923bd82833cd2aa02f3ac00ff37d5"
-  integrity sha512-2PKXLw6RDtSkvvroqTg8LNfgVI1ME2zMy6avi/67Er2gdGWFe/ruXsuV1vd46UhXG/8vLXeh7Rus3+9YBhm5Vw==
+"@ty-ras/server-node@0.12.1":
+  version "0.12.1"
+  resolved "https://registry.yarnpkg.com/@ty-ras/server-node/-/server-node-0.12.1.tgz#ecac4987010e38c8593d2d7273ddbe99036d17ce"
+  integrity sha512-44EXPwrOJDlumUJ4oUGHHqt0lU6qc2rEj7jqbMVC0KrFb4hoUap1y+L56HB+3wGnEeAJD+AYvNj9HAnSgoy0dA==
   dependencies:
     "@ty-ras/endpoint-prefix" "0.12.0"
     "@ty-ras/server" "0.12.0"

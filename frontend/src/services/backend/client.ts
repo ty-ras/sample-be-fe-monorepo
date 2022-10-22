@@ -1,16 +1,11 @@
-// TODO encapsulate this as separate TyRAS library
+// TODO encapsulate this as separate TyRAS library, e.g. @ty-ras/client-fetch
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
-import * as feCommon from "@ty-ras/data-frontend";
-import { Buffer } from "buffer";
+import type * as feCommon from "@ty-ras/data-frontend";
 
 export const createCallHTTPEndpoint =
   (schemeHostAndPort: string): feCommon.CallHTTPEndpoint =>
   async ({ headers, url, method, query, ...args }) => {
-    const encoding = "utf8";
-    const body =
-      "body" in args
-        ? Buffer.from(JSON.stringify(args.body), encoding)
-        : undefined;
+    const body = "body" in args ? JSON.stringify(args.body) : undefined;
 
     const urlObject = new URL(`${schemeHostAndPort}${url}`);
     if (urlObject.pathname != url) {
@@ -41,8 +36,8 @@ export const createCallHTTPEndpoint =
           ? {}
           : {
               ["Content-Type"]: "application/json",
-              ["Content-Length"]: `${body.byteLength}`,
-              ["Content-Encoding"]: encoding,
+              // ["Content-Length"]: `${body.byteLength}`,
+              // ["Content-Encoding"]: encoding,
             }),
         ...headers,
       },

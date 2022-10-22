@@ -81,6 +81,8 @@ services:
         cd /tyras/nodemon/protocol
         nodemon ${TYRAS_NODEMON_ARGS} &
         cd /tyras/code
+        # This will be used by Vite config to determine whether Chokidar polling-based HMR is needed
+        export TYRAS_NODEMON_ARGS='${TYRAS_NODEMON_ARGS}'
         yarn run dev --host 0.0.0.0
   user-auth:
     image: jagregory/cognito-local:3.21.1

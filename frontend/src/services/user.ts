@@ -8,16 +8,14 @@ import env from "../environment";
 import * as common from "./common";
 
 interface User {
-  // Empty string if not logged in
-  username: string;
-
+  // These actions are immutable
   login: (input: UserLoginInput) => Promise<UserLoginOutput>;
   logout: () => Promise<void>;
+  getTokenForAuthorization: () => Promise<string | undefined>; // Refreshes the token if needed.
 
-  lastSeenToken: string;
-
-  // Refreshes the token if needed.
-  getTokenForAuthorization: (() => Promise<string>) | undefined;
+  // These fields and actions are mutable
+  username: string; // Empty string if not logged in
+  lastSeenToken: string; // Peek at token without checking whether it needs to refresh
 }
 
 const authenticator = auth.createAuthenticator(
@@ -30,7 +28,12 @@ export const useUserStore = create<User>()(
     (set, get) => ({
       username: "",
       lastSeenToken: "",
-      getTokenForAuthorization: undefined,
+      getTokenForAuthorization: () => {
+        // TODO check for expiration and refresh the token if needed
+        // When refreshing, make sure that get().username === input.username to avoid setting token right after logging out.
+        const token = get().lastSeenToken;
+        return Promise.resolve(token || undefined);
+      },
       login: async (input) =>
         await F.pipe(
           // We are performing async so lift to TaskEither immediately
@@ -48,23 +51,19 @@ export const useUserStore = create<User>()(
             authInfo
               ? F.pipe(
                   // TODO decode also refresh token
-                  E.bindTo("tokenString")(
+                  E.bindTo("accessToken")(
                     nonEmptyStringValidation.decode(authInfo.AccessToken),
                   ),
-                  E.bindW("unvalidatedTokenContents", ({ tokenString }) =>
-                    E.tryCatch(() => jwtDecode(tokenString), common.makeError),
+                  E.bindW("unvalidatedTokenContents", ({ accessToken }) =>
+                    E.tryCatch(() => jwtDecode(accessToken), common.makeError),
                   ),
                   E.bindW("tokenContents", ({ unvalidatedTokenContents }) =>
                     tokenContentsValidation.decode(unvalidatedTokenContents),
                   ),
-                  E.map(({ tokenContents, tokenString }) => {
+                  E.map(({ tokenContents, accessToken }) => {
                     set({
                       username: tokenContents.username,
-                      lastSeenToken: tokenString,
-                      getTokenForAuthorization: () =>
-                        // TODO check for expiration and refresh the token if needed
-                        // When refreshing, make sure that get().username === input.username to avoid setting token right after logging out.
-                        Promise.resolve(tokenString),
+                      lastSeenToken: accessToken,
                     });
                     return info;
                   }),
@@ -92,7 +91,6 @@ export const useUserStore = create<User>()(
           set({
             username: "",
             lastSeenToken: "",
-            getTokenForAuthorization: undefined,
           });
         }
       },
