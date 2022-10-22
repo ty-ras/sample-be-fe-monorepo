@@ -2,10 +2,10 @@ import * as data from "@ty-ras/data-io-ts";
 import * as api from "@ty-ras/data-frontend-io-ts";
 import * as t from "io-ts";
 import * as client from "./client";
-import env from "../../environment";
 import * as protocol from "../../protocol";
+import config from "../../config";
 
-export const callRawHTTP = client.createCallHTTPEndpoint(env.backend);
+export const callRawHTTP = client.createCallHTTPEndpoint(config.backend);
 
 const createBackend = () => {
   const factory = api.createAPICallFactory(callRawHTTP).withHeaders({

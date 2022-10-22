@@ -4,7 +4,7 @@ import jwtDecode from "jwt-decode";
 import * as t from "io-ts";
 import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
 import * as auth from "./auth";
-import env from "../environment";
+import config from "../config";
 import * as common from "./common";
 
 interface User {
@@ -19,8 +19,8 @@ interface User {
 }
 
 const authenticator = auth.createAuthenticator(
-  env.auth.endpoint ?? env.region,
-  env.auth.clientId,
+  config.authentication.endpointOrRegion,
+  config.authentication.clientId,
 );
 
 export const useUserStore = create<User>()(

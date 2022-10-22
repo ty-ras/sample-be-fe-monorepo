@@ -39,16 +39,9 @@ jobs:
 
           ./scripts/test.sh '${{ matrix.dir }}' coverage
 
-      - id: lint
-        name: Lint ${{ matrix.dir }}
-        shell: bash
-        run: |
-          set -e
-
-          ./scripts/lint.sh '${{ matrix.dir }}'
-
       # Run build *after* tests - since tests no longer require transpiled JS to run
       # We still want to run build to catch any TS error possibly lurking somewhere.
+      # Run build *before* linting to provide clearer error messages
       - id: compile
         name: Compile ${{ matrix.dir }}
         shell: bash
@@ -56,6 +49,14 @@ jobs:
           set -e
 
           ./scripts/build.sh '${{ matrix.dir }}' ci
+          
+      - id: lint
+        name: Lint ${{ matrix.dir }}
+        shell: bash
+        run: |
+          set -e
+
+          ./scripts/lint.sh '${{ matrix.dir }}'
 
       # - id: coverage
       #   name: Upload coverage for '${{ matrix.dir }}'

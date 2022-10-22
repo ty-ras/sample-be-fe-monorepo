@@ -41,6 +41,9 @@ module.exports = {
         paths: ["src"],
         extensions: [".ts", ".tsx"]
       }
+    },
+    "react": {
+      version: "detect"
     }
   },
   rules: {

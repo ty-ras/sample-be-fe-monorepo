@@ -1,2 +1,2 @@
-src/environment.ts
 *.log
+.env
