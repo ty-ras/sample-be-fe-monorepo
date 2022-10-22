@@ -1,4 +1,3 @@
-import * as cognito from "@aws-sdk/client-cognito-identity-provider";
 import * as verify from "aws-jwt-verify";
 import * as parse from "aws-jwt-verify/safe-json-parse";
 import * as http from "http";
@@ -6,21 +5,6 @@ import * as t from "io-ts";
 import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
 import type * as config from "../config";
 import * as services from "../services";
-
-export const getToken = async (endpoint: string) => {
-  return await new cognito.CognitoIdentityProviderClient({
-    endpoint,
-  }).send(
-    new cognito.InitiateAuthCommand({
-      AuthFlow: cognito.AuthFlowType.USER_PASSWORD_AUTH,
-      ClientId: "abcdefghijklmnopqrstuvwxy",
-      AuthParameters: {
-        USERNAME: "dev",
-        PASSWORD: "dev",
-      },
-    }),
-  );
-};
 
 export const createNonThrowingVerifier = async (
   input: config.Config["authentication"],

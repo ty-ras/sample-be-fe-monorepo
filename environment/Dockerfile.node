@@ -2,3 +2,8 @@ ARG NODE_VERSION
 FROM node:${NODE_VERSION}
 
 RUN yarn global add nodemon
+# For jq to be used in local env in FE
+# The only reason for that is because Vite devs are too lazy to update dotenv to version which supports multiline env vars:
+# https://github.com/vitejs/vite/pull/6783
+RUN apk update && apk add jq
+

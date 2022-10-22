@@ -51,8 +51,19 @@ export const config = t.type(
     ),
     http: t.type(
       {
-        ...remoteEndpoint.props,
-        // TOTOD: certs
+        server: t.type(
+          {
+            ...remoteEndpoint.props,
+            // TOTOD: certs
+          },
+          "HTTPServerConfig",
+        ),
+        cors: t.type(
+          {
+            frontendAddress: nonEmptyString,
+          },
+          "HTTPCorsConfig",
+        ),
       },
       "HTTPConfig",
     ),
