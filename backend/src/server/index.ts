@@ -65,6 +65,7 @@ export const startServer = async ({
   );
 };
 
+// TODO Move to @ty-ras/server
 const createCORSHandler = ({
   origin,
   allowHeaders,

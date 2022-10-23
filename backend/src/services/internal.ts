@@ -29,6 +29,29 @@ export const createDBService = <
   };
 };
 
+export const createDBServiceForSingleRow = <
+  TValidation extends t.Mixed,
+  TArgs extends Array<any>,
+>(
+  createFunctionality: (
+    validation: t.Type<
+      t.TypeOf<TValidation>,
+      t.OutputOf<TValidation>[],
+      t.InputOf<TValidation>
+    >,
+  ) => (...args: TArgs) => () => Promise<
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    TValidation extends t.Type<infer T, infer _0, infer _1> ? T : never
+  >,
+  validation: TValidation,
+): common.Service<
+  TValidation,
+  (
+    ...args: TArgs
+  ) => ReturnType<ReturnType<ReturnType<typeof createFunctionality>>>
+> =>
+  createDBService((v) => createFunctionality(arrayOfOneElement(v)), validation);
+
 export const dbQueryWithoutParameters = <T>(
   query: string,
   validation: t.Decoder<unknown, T>,
@@ -47,6 +70,35 @@ export const dbQueryWithoutParameters = <T>(
   );
 };
 
+export const dbQueryWithParameters =
+  <T>(validation: t.Decoder<unknown, T>): BindDBQueryArgs<T> =>
+  (template, ...parameterNames) =>
+    F.flow(
+      (db, parameters) =>
+        TE.tryCatch(
+          async () =>
+            await db(
+              template,
+              ...parameterNames.map(
+                (parameterName) =>
+                  parameters[parameterName as keyof typeof parameters] ?? null,
+              ),
+            ),
+          common.makeError,
+        ),
+      TE.chainW((rows) => TE.fromEither(validation.decode(rows))),
+      TE.getOrElseW((error) => T.of(common.getErrorObject(error))),
+      T.map((lel) => common.throwIfError(lel)),
+    );
+
+export type BindDBQueryArgs<T> = <TArgs extends [string, ...Array<string>]>(
+  template: TemplateStringsArray,
+  ...parameterNames: TArgs
+) => (
+  db: db.Sql,
+  parameters: Record<TArgs[number], db.ParameterOrFragment<never> | undefined>,
+) => T.Task<T>;
+
 export const makeTemplateString = (string: string): TemplateStringsArray => {
   const result = [string] as const;
   return {
@@ -55,7 +107,7 @@ export const makeTemplateString = (string: string): TemplateStringsArray => {
   };
 };
 
-export const oneRowQuery = <TValidation extends ArrayTypeBase>(
+export const pipeArrayToSingleElement = <TValidation extends ArrayTypeBase>(
   array: TValidation,
 ) =>
   array.pipe<
@@ -79,6 +131,32 @@ export const oneRowQuery = <TValidation extends ArrayTypeBase>(
       (a) => [a] as GetArrayValidationArrayType<TValidation>,
     ),
   );
+
+export const arrayOfOneElement = <TValidation extends t.Mixed>(
+  singleRow: TValidation,
+) =>
+  t
+    .array(singleRow, "Rows")
+    .pipe<
+      t.TypeOf<TValidation>,
+      Array<t.TypeOf<TValidation>>,
+      any,
+      Array<t.TypeOf<TValidation>>
+    >(
+      new t.Type(
+        singleRow.name,
+        (u): u is t.TypeOf<TValidation> => singleRow.is(u),
+        (i, context) =>
+          i.length === 1
+            ? t.success(i[0])
+            : t.failure(
+                i,
+                context,
+                "Array was empty or contained more than one element",
+              ),
+        (a) => [a],
+      ),
+    );
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 type GetArrayValidationArrayType<TValidation extends ArrayTypeBase> =

@@ -96,6 +96,8 @@ services:
         export TYRAS_NODEMON_ARGS='${TYRAS_NODEMON_ARGS}'
         # This will be used by Vite app itself to parse configuration
         echo "$${TYRAS_FE_CONFIG}" | jq -cM .
+        # Vite can't handle multi-string env vars yet, but perhaps in Vite4: https://github.com/vitejs/vite/pull/6783
+        # So use jq to compact readable multi-line JSON string into one-liner
         echo 'VITE_TYRAS_FE_CONFIG='"$$(echo "$${TYRAS_FE_CONFIG}" | jq -cM .)" > .env
         yarn run dev --host 0.0.0.0
   user-auth:

@@ -5,6 +5,14 @@ import { function as F, either as E } from "fp-ts";
 import * as d from "@ty-ras/data";
 import * as pg from "postgres";
 
+export const unauthenticatedStateSpec = {
+  db: true,
+} as const;
+export const authenticatedStateSpec = {
+  db: true,
+  username: true,
+} as const;
+
 export const endpointState = <TStateSpec extends object>(
   spec: TStateSpec,
 ): ep.EndpointStateValidator<
