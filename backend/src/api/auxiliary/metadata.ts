@@ -24,6 +24,5 @@ export const mdArgsBase = <TOutput>(
       },
     },
   },
-
   operation,
 });
