@@ -73,6 +73,7 @@ export const config = t.type(
         dbName: nonEmptyString,
         username: nonEmptyString,
         password: nonEmptyString,
+        role: nonEmptyString,
       },
       "DBConfig",
     ),

@@ -3361,6 +3361,11 @@ invariant@^2.2.2, invariant@^2.2.4:
   dependencies:
     loose-envify "^1.0.0"
 
+io-ts-types@0.5.19:
+  version "0.5.19"
+  resolved "https://registry.yarnpkg.com/io-ts-types/-/io-ts-types-0.5.19.tgz#9c04fa73f15992436605218a5686b610efa7a5d3"
+  integrity sha512-kQOYYDZG5vKre+INIDZbLeDJe+oM+4zLpUkjXyTMyUfoCpjJNyi29ZLkuEAwcPufaYo3yu/BsemZtbdD+NtRfQ==
+
 io-ts@2.2.19:
   version "2.2.19"
   resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-2.2.19.tgz#4ba5e120472a0a07ff693fdb3d7075ea1c1b77c3"
@@ -3682,6 +3687,11 @@ minimatch@^3.0.4, minimatch@^3.1.1, minimatch@^3.1.2:
   dependencies:
     brace-expansion "^1.1.7"
 
+monocle-ts@2.3.13:
+  version "2.3.13"
+  resolved "https://registry.yarnpkg.com/monocle-ts/-/monocle-ts-2.3.13.tgz#7c8af489613cd5175df2ea3c02c57c6151995e5d"
+  integrity sha512-D5Ygd3oulEoAm3KuGO0eeJIrhFf1jlQIoEVV2DYsZUMz42j4tGxgct97Aq68+F8w4w4geEnwFa8HayTS/7lpKQ==
+
 ms@2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
@@ -3696,6 +3706,11 @@ natural-compare@^1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/natural-compare/-/natural-compare-1.4.0.tgz#4abebfeed7541f2c27acfb29bdbbd15c8d5ba4f7"
   integrity sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==
+
+newtype-ts@0.3.5:
+  version "0.3.5"
+  resolved "https://registry.yarnpkg.com/newtype-ts/-/newtype-ts-0.3.5.tgz#5c113d34a04938d9e90061437638260ea965c490"
+  integrity sha512-v83UEQMlVR75yf1OUdoSFssjitxzjZlqBAjiGQ4WJaML8Jdc68LJ+BaSAXUmKY4bNzp7hygkKLYTsDi14PxI2g==
 
 node-domexception@1.0.0:
   version "1.0.0"
