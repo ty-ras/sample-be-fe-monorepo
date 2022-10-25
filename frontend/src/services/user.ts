@@ -11,11 +11,14 @@ interface User {
   // These actions are immutable
   login: (input: UserLoginInput) => Promise<UserLoginOutput>;
   logout: () => Promise<void>;
-  getTokenForAuthorization: () => Promise<string | undefined>; // Refreshes the token if needed.
+  // Refreshes the token if needed.
+  // It must be immutable because our first load might be so that we are logged in (from persistence store), so we can't start with this field set to undefined.
+  getTokenForAuthorization: () => Promise<string | undefined>;
 
   // These fields and actions are mutable
   username: string; // Empty string if not logged in
-  lastSeenToken: string; // Peek at token without checking whether it needs to refresh
+  accessToken: string; // Peek at token without checking whether it needs to refresh
+  refreshToken: string;
 }
 
 const authenticator = auth.createAuthenticator(
@@ -27,32 +30,31 @@ export const useUserStore = create<User>()(
   persist(
     (set, get) => ({
       username: "",
-      lastSeenToken: "",
+      accessToken: "",
+      refreshToken: "",
       getTokenForAuthorization: () => {
         // TODO check for expiration and refresh the token if needed
         // When refreshing, make sure that get().username === input.username to avoid setting token right after logging out.
-        const token = get().lastSeenToken;
-        return Promise.resolve(token || undefined);
+        return Promise.resolve(get().accessToken || undefined);
       },
       login: async (input) =>
         await F.pipe(
           // We are performing async so lift to TaskEither immediately
           TE.of(input),
           TE.chainW((input) =>
-            TE.tryCatch(
-              async () =>
-                await authenticator.login(input.username, input.password),
-              common.makeError,
-            ),
+            authenticator.login(input.username, input.password),
           ),
           // TODO this whole thing from here on is side-effect
           // Try chainFirst later?
-          TE.chain(({ AuthenticationResult: authInfo, ...info }) =>
-            authInfo
+          TE.chain((tokenOrMFA) =>
+            tokenOrMFA.result === "tokens"
               ? F.pipe(
+                  E.bindTo("refreshToken")(
+                    nonEmptyStringValidation.decode(tokenOrMFA.refreshToken),
+                  ),
                   // TODO decode also refresh token
-                  E.bindTo("accessToken")(
-                    nonEmptyStringValidation.decode(authInfo.AccessToken),
+                  E.bindW("accessToken", () =>
+                    nonEmptyStringValidation.decode(tokenOrMFA.accessToken),
                   ),
                   E.bindW("unvalidatedTokenContents", ({ accessToken }) =>
                     E.tryCatch(() => jwtDecode(accessToken), common.makeError),
@@ -60,19 +62,20 @@ export const useUserStore = create<User>()(
                   E.bindW("tokenContents", ({ unvalidatedTokenContents }) =>
                     tokenContentsValidation.decode(unvalidatedTokenContents),
                   ),
-                  E.map(({ tokenContents, accessToken }) => {
+                  E.map(({ tokenContents, refreshToken, accessToken }) => {
                     set({
                       username: tokenContents.username,
-                      lastSeenToken: accessToken,
+                      refreshToken,
+                      accessToken,
                     });
-                    return info;
+                    return tokenOrMFA;
                   }),
                   TE.fromEither,
                 )
               : TE.left(
                   new Error(
                     `We probably encountered MFA response? (${
-                      info.ChallengeName ?? "<No challenge>"
+                      tokenOrMFA.challengeName ?? "<No challenge>"
                     })`,
                   ),
                 ),
@@ -81,16 +84,16 @@ export const useUserStore = create<User>()(
           T.map(common.throwIfError),
         )(),
       logout: async () => {
-        // Logout -> send something to Cognito?
         try {
-          const accessToken = get().lastSeenToken;
-          if (accessToken) {
-            await authenticator.logout(accessToken);
+          const token = get().refreshToken;
+          if (token) {
+            await authenticator.logout(token);
           }
         } finally {
           set({
             username: "",
-            lastSeenToken: "",
+            accessToken: "",
+            refreshToken: "",
           });
         }
       },
@@ -122,7 +125,4 @@ export interface UserLoginInput {
   password: string;
 }
 
-export type UserLoginOutput = Omit<
-  auth.UsernamePasswordResult,
-  "AuthenticationResult"
->;
+export type UserLoginOutput = Omit<auth.LoginResult, "AuthenticationResult">;

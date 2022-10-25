@@ -18,7 +18,7 @@ const APIDoc = () => {
 
   useEffect(() => {
     void F.pipe(
-      TE.tryCatch(async () => await getToken?.(), common.makeError),
+      TE.tryCatch(async () => await getToken(), common.makeError),
       TE.chain((token) =>
         TE.tryCatch(
           async () =>

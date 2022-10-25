@@ -6,6 +6,7 @@ import * as api from "../api";
 import type * as config from "../config";
 import * as auth from "./auth";
 import * as db from "./db";
+import { function as F } from "fp-ts";
 
 export const startServer = async ({
   authentication,
@@ -23,15 +24,23 @@ export const startServer = async ({
       // Endpoints comprise the REST API as a whole
       endpoints: api.createEndpoints(),
       // React on various server events.
-      // Notice call to corsHandler -> it will modify the context (Response object) as necessary.
-      events: (eventName, eventArgs) =>
-        console.info(
-          "EVENT",
+      events: F.flow(
+        // First, trigger CORS handler (it will modify the context object of eventArgs)
+        (eventName, eventArgs) => ({
           eventName,
-          corsHandler(eventName, eventArgs),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
-        ),
+          eventArgs,
+          corsTriggered: corsHandler(eventName, eventArgs),
+        }),
+        // Then log event info + whether CORS triggered to console
+        ({ eventName, eventArgs, corsTriggered }) =>
+          console.info(
+            "EVENT",
+            eventName,
+            corsTriggered,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
+          ),
+      ),
       // Create the state object for endpoints
       // Endpoints specify which properties of State they want, and this callback tries to provide them
       // The final validation of the returned state object is always done by endpoint specification, and thus it is enough to just attempt to e.g. provide username.
