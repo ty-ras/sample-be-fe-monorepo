@@ -12,9 +12,6 @@ declare namespace api {
     export interface Read extends common.AuthenticatedEndpoint {
       method: "GET";
       url: data.things.ThingID;
-      query: {
-        includeDeleted?: boolean;
-      };
       responseBody: data.things.Thing;
     }
 

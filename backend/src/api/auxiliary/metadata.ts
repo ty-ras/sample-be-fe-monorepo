@@ -1,13 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as protocol from "@ty-ras/protocol";
 import type * as types from "./types";
-import type { OpenAPIV3 as openapi } from "openapi-types";
+import * as openapi from "@ty-ras/metadata-openapi";
 
 export const mdArgsBase = <TOutput>(
   output: { description: string; example: TOutput },
-  operation: Omit<
-    openapi.OperationObject,
-    "parameters" | "requestBody" | "responses" | "security"
-  >,
+  operation: openapi.OpenAPIArgumentsStatic["operation"],
 ): types.EndpointSpec<
   protocol.ProtocolSpecCore<string, any>,
   any,
@@ -26,5 +24,6 @@ export const mdArgsBase = <TOutput>(
       },
     },
   },
+
   operation,
 });

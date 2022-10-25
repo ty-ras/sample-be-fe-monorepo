@@ -18,7 +18,7 @@ export const withResponseBody = <
     ({
       ...apiSpec,
       state: state.endpointState(stateSpec),
-      output: dataBE.responseBody(validation),
+      output: dataBE.responseBodyForValidatedData(validation),
       endpointHandler: async (...args: Parameters<typeof extractArgs>) =>
         await functionality(...extractArgs(...args)),
     } as any),

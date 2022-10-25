@@ -11,12 +11,17 @@ export const createThingsEndpoints = (builder: aux.Builder) => [
     .batchSpec(readThing)
     .batchSpec(updateThing)
     .batchSpec(deleteThing)
-    .createEndpoint({ openapi: { summary: "Read, update, or delete things" } }),
-  builder.atURL``.batchSpec(getThings).createEndpoint({
-    openapi: {
-      summary: "Query things",
-    },
-  }),
+    .createEndpoint({
+      openapi: { summary: "Read, update, or delete a thing" },
+    }),
+  builder.atURL``
+    .batchSpec(createThing)
+    .batchSpec(getThings)
+    .createEndpoint({
+      openapi: {
+        summary: "Query thing(s)",
+      },
+    }),
   builder.atURL`/statistics`.batchSpec(getThingsCount).createEndpoint({
     openapi: {
       summary: "Get amount of things",
@@ -165,6 +170,11 @@ const deleteThing = aux
             },
             { description: "Delete a thing by its ID." },
           ),
+          urlParameters: {
+            id: {
+              description: "The ID of the thing to delete",
+            },
+          },
         },
       },
     },
