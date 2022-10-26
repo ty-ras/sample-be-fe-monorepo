@@ -119,6 +119,44 @@ const _createResourcePool = <T>(
     ),
     T.map(() => {}),
   );
+  const ac = async () => {
+    const existing = state.resources.find((r) => r?.returnedAt !== undefined);
+    let resource: T | undefined;
+    let thisIndex: number | undefined;
+    try {
+      if (existing) {
+        existing.returnedAt = undefined;
+        resource = existing.resource;
+      } else {
+        const len = state.resources.length;
+        if (isRoomForResource(opts.maxCount, len)) {
+          thisIndex = len;
+          // Before doing async, add undefined to array to signal we are in middle of adding it
+          state.resources.push(undefined);
+          resource = await opts.resource.create();
+          if (resource === undefined) {
+            throw new Error("Pooling undefineds not possible.");
+          }
+          // Let errors flow thru
+          await opts.inits?.afterCreate?.(resource);
+        } else {
+          throw new Error("Pool reached max capability");
+        }
+      }
+      // Let errors flow thru
+      await opts.inits?.afterAcquire?.(resource);
+
+      return resource;
+    } finally {
+      if (thisIndex !== undefined) {
+        if (resource === undefined) {
+          state.resources.splice(thisIndex, 1);
+        } else {
+          state.resources[thisIndex] = { resource, returnedAt: undefined };
+        }
+      }
+    }
+  };
   return {
     acquire: () => acquire()(),
     release: (resource) => release(resource)(),
@@ -132,7 +170,7 @@ const defaultOptions = {
 
 interface ResourcePoolState<T> {
   shouldEvictionRun: boolean;
-  resources: Array<Resource<T>>;
+  resources: Array<Resource<T> | undefined>;
 }
 
 interface Resource<T> {
@@ -143,10 +181,8 @@ interface Resource<T> {
 type InternalResourcePoolOptions<T> = typeof defaultOptions &
   ResourcePoolOptions<T>;
 
-const isRoomForResource = (
-  maxCount: number | undefined,
-  array: Array<unknown>,
-) => maxCount === undefined || array.length < maxCount;
+const isRoomForResource = (maxCount: number | undefined, arrayLength: number) =>
+  maxCount === undefined || arrayLength < maxCount;
 
 const makeResource = <T>(resource: T): Resource<T> => ({
   resource,
@@ -207,3 +243,14 @@ const asyncSideEffectIgnoreErrors = <TArgs extends Array<any>>(
     TE.toUnion,
     T.map(() => E.of<Error, string>("Lose error on purpose")),
   );
+
+const asyncIgnoreErrors = async <TArgs extends Array<any>>(
+  sideEffect: ((...args: TArgs) => Promise<void>) | undefined,
+  ...args: TArgs
+) => {
+  try {
+    await sideEffect?.(...args);
+  } catch {
+    // Ignore
+  }
+};
