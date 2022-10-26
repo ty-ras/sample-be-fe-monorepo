@@ -3,7 +3,7 @@ import * as data from "@ty-ras/data-io-ts";
 import * as t from "io-ts";
 import { function as F, either as E } from "fp-ts";
 import * as d from "@ty-ras/data";
-import * as pg from "postgres";
+import type * as services from "../../services";
 
 export const unauthenticatedStateSpec = {
   db: true,
@@ -78,26 +78,10 @@ export const endpointState = <TStateSpec extends object>(
           }),
         ),
         // "Merge" the result of previous operation as TyRAS operates on type unions, not either-or constructs.
-        E.getOrElseW((e) => e),
+        E.toUnion,
       ),
   };
 };
-
-// instanceOf is not part of io-ts, see also discussion https://github.com/gcanti/io-ts/issues/66
-// It says it is 'bad idea' and advices to use smart constructors and option-monads
-// It makes sense if everything you write and use is strictly functional, but in this case, I rather not.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const instanceOf = <T extends abstract new (...args: any) => any>(
-  ctor: T,
-  className: string,
-) =>
-  new t.Type<InstanceType<T>>(
-    `class ${className}`,
-    (i): i is InstanceType<T> => i instanceof ctor,
-    (i, context) => (i instanceof ctor ? t.success(i) : t.failure(i, context)),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    (a) => a,
-  );
 
 const authenticationStateValidator = t.type({
   username: t.string,
@@ -105,12 +89,12 @@ const authenticationStateValidator = t.type({
 });
 
 export class Database {
-  public constructor(public readonly db: pg.Sql) {}
+  public constructor(public readonly db: services.DBPool) {}
 }
 
 const fullStateValidator = t.type({
   ...authenticationStateValidator.props,
-  db: instanceOf(Database, "Database"),
+  db: data.instanceOf(Database, "Database"),
 });
 
 const AUTHENTICATION_PROPS = d.transformEntries(

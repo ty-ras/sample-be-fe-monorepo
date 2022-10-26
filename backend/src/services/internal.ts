@@ -1,7 +1,7 @@
 import * as t from "io-ts";
-import type * as db from "postgres";
+import type * as db from "pg";
 import * as common from "./common";
-import { function as F, task as T, taskEither as TE } from "fp-ts";
+import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const createDBService = <
@@ -56,17 +56,14 @@ export const dbQueryWithoutParameters = <T>(
   query: string,
   validation: t.Decoder<unknown, T>,
 ) => {
-  const template = makeTemplateString(query);
   return F.flow(
     // Execute query
-    (db: db.Sql) =>
-      TE.tryCatch(async () => await db(template), common.makeError),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (db: db.Client, _: void) =>
+      TE.tryCatch(async () => await db.query(query), common.makeError),
     // Validate query result
-    TE.chainW((rows) => TE.fromEither(validation.decode(rows))),
-    // Merge Either<X,Y> into X | Y
-    TE.getOrElseW((error) => T.of(common.getErrorObject(error))),
-    // Throw if X | Y instanceof Error
-    T.map(common.throwIfError),
+    TE.chainW(({ rows }) => TE.fromEither(validation.decode(rows))),
+    TE.mapLeft(common.getErrorObject),
   );
 };
 
@@ -77,27 +74,29 @@ export const dbQueryWithParameters =
       (db, parameters) =>
         TE.tryCatch(
           async () =>
-            await db(
-              template,
-              ...parameterNames.map(
+            await db.query(
+              template.reduce(
+                (curSQL, fragment, idx) => `${curSQL}${fragment}$${idx}`,
+                "",
+              ),
+              parameterNames.map(
                 (parameterName) =>
-                  parameters[parameterName as keyof typeof parameters] ?? null,
+                  parameters[parameterName as keyof typeof parameters],
               ),
             ),
           common.makeError,
         ),
-      TE.chainW((rows) => TE.fromEither(validation.decode(rows))),
-      TE.getOrElseW((error) => T.of(common.getErrorObject(error))),
-      T.map((lel) => common.throwIfError(lel)),
+      TE.chainW(({ rows }) => TE.fromEither(validation.decode(rows))),
+      TE.mapLeft(common.getErrorObject),
     );
 
 export type BindDBQueryArgs<T> = <TArgs extends [string, ...Array<string>]>(
   template: TemplateStringsArray,
   ...parameterNames: TArgs
 ) => (
-  db: db.Sql,
-  parameters: Record<TArgs[number], db.ParameterOrFragment<never> | undefined>,
-) => T.Task<T>;
+  db: db.Client,
+  parameters: Record<TArgs[number], unknown>,
+) => TE.TaskEither<Error, T>;
 
 export const makeTemplateString = (string: string): TemplateStringsArray => {
   const result = [string] as const;
@@ -106,31 +105,6 @@ export const makeTemplateString = (string: string): TemplateStringsArray => {
     raw: result,
   };
 };
-
-export const pipeArrayToSingleElement = <TValidation extends ArrayTypeBase>(
-  array: TValidation,
-) =>
-  array.pipe<
-    GetArrayValidationElementType<TValidation>,
-    GetArrayValidationArrayType<TValidation>,
-    any,
-    GetArrayValidationArrayType<TValidation>
-  >(
-    new t.Type(
-      "FirstElement",
-      (u): u is GetArrayValidationElementType<TValidation> => array.type.is(u),
-      (i, context) =>
-        i.length === 1
-          ? t.success(i[0] as GetArrayValidationElementType<TValidation>)
-          : t.failure(
-              i,
-              context,
-              "Array was empty or contained more than one element",
-            ),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      (a) => [a] as GetArrayValidationArrayType<TValidation>,
-    ),
-  );
 
 export const arrayOfOneElement = <TValidation extends t.Mixed>(
   singleRow: TValidation,
@@ -158,16 +132,68 @@ export const arrayOfOneElement = <TValidation extends t.Mixed>(
       ),
     );
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-type GetArrayValidationArrayType<TValidation extends ArrayTypeBase> =
-  TValidation extends t.ArrayType<infer _0, infer TArray, infer _1, infer _2>
-    ? TArray
-    : never;
-type GetArrayValidationElementType<TValidation extends ArrayTypeBase> =
-  TValidation extends t.ArrayType<infer _0, infer TArray, infer _1, infer _2>
-    ? TArray extends Array<infer T>
-      ? T
-      : never
-    : never;
-
-type ArrayTypeBase = t.ArrayType<t.Mixed, Array<any>, any, any>;
+export const usePool = <T, TContext>(
+  useClient: (client: db.Client, ctx: TContext) => TE.TaskEither<Error, T>,
+) =>
+  F.flow(
+    (db: common.DBPool, ctx: TContext) => TE.bindTo("ctx")(TE.of({ db, ctx })),
+    TE.bind("client", ({ ctx }) =>
+      TE.tryCatch(async () => await ctx.db.acquire(), E.toError),
+    ),
+    TE.bindW("result", ({ client, ctx }) =>
+      F.pipe(
+        useClient(client, ctx.ctx),
+        TE.mapLeft((error) => ({ error, client, ctx })),
+      ),
+    ),
+    TE.toUnion,
+    T.map((acquireErrorOrContext) =>
+      acquireErrorOrContext instanceof Error
+        ? TE.left<Error, T>(acquireErrorOrContext)
+        : F.pipe(
+            TE.tryCatch(
+              async () =>
+                await acquireErrorOrContext.ctx.db.release(
+                  acquireErrorOrContext.client,
+                ),
+              E.toError,
+            ),
+            TE.toUnion,
+            T.map(() =>
+              "error" in acquireErrorOrContext
+                ? E.left<Error, T>(acquireErrorOrContext.error)
+                : E.right<Error, T>(acquireErrorOrContext.result),
+            ),
+          ),
+    ),
+    T.flatten,
+    TE.toUnion,
+    T.map<T | Error, T>(common.throwIfError),
+    // TE.bimap(
+    //   ({ client, ctx, error }) =>
+    //     F.pipe(
+    //       TE.of(error),
+    //       TE.chainFirst(() =>
+    //         TE.tryCatch(async () => await ctx.db.release(client), E.toError),
+    //       ),
+    //       TE.toUnion,
+    //     ),
+    //   ({ client, ctx, result }) =>
+    //     F.pipe(
+    //       TE.of(result),
+    //       TE.chainFirst(() =>
+    //         TE.tryCatch(async () => await ctx.db.release(client), E.toError),
+    //       ),
+    //     ),
+    // ),
+    // T.map((e) => (E.isLeft(e) ? TE.leftTask<Error, T>(e.left) : e.right)),
+    // T.flatten,
+    // TE.toUnion,
+    // T.map<T | Error, T>(common.throwIfError),
+    //  .chainFirst(({ ctx, client }) =>
+    //   TE.tryCatch(async () => await ctx.db.release(client), E.toError),
+    // ),
+    // TE.map(({ result }) => result),
+    // TE.toUnion,
+    // T.map<T | Error, T>(common.throwIfError),
+  );

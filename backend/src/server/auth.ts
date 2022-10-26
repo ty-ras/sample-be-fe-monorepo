@@ -39,7 +39,7 @@ export const createNonThrowingVerifier = async (
       TE.tryCatch(async () => await verifier.verify(token), services.makeError),
     ),
     // 'Merge' both left and right
-    TE.getOrElseW((error) => T.of(error)),
+    TE.toUnion,
   );
 };
 
