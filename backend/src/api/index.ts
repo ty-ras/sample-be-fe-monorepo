@@ -1,6 +1,7 @@
 import * as prefix from "@ty-ras/endpoint-prefix";
 import * as aux from "./auxiliary";
 import * as endpoints from "./endpoints";
+import type * as services from "../services";
 
 export {
   State,
@@ -9,13 +10,16 @@ export {
   AUTH_SCHEME,
 } from "./auxiliary";
 
-export const createEndpoints = () => {
+export const createEndpoints = (pool: services.DBPool) => {
   // Create builder: 'initial' which doesn't require any metadata added to endpoints
   // And 'withMD' which requires few OpenAPI manual things added to endpoints (schema generation is automatic).
   const { noMetadata, withOpenAPI } = aux.createBuilders();
 
   // Add things endpoints with their metdata
-  const thingsEndpointsAndMD = endpoints.createThingsEndpoints(withOpenAPI);
+  const thingsEndpointsAndMD = endpoints.createThingsEndpoints(
+    withOpenAPI,
+    pool,
+  );
 
   // Add endpoint to serve automatically generated OpenAPI Document
   const openapiDoc = endpoints.createOpenAPIEndpoint(

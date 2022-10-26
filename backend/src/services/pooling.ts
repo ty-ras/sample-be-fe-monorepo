@@ -6,11 +6,10 @@ import {
   task as T,
   taskEither as TE,
 } from "fp-ts";
-import * as common from "./common";
 
 export interface ResourcePool<T> {
-  acquire: () => Promise<T>;
-  release: (resource: T) => Promise<void>;
+  acquire: () => TE.TaskEither<Error, T>;
+  release: (client: T) => TE.TaskEither<Error, void>;
 }
 
 export interface ResourcePoolOptions<T> {
@@ -23,9 +22,11 @@ export interface ResourcePoolOptions<T> {
     destroy: (resource: T) => Promise<void>;
   };
   inits?: Partial<{
+    // Errors from these will flow thru acquire/release methods!
     afterCreate: (resource: T) => Promise<void>;
     afterAcquire: (resource: T) => Promise<void>;
     afterRelease: (resource: T) => Promise<void>;
+    // Errors from this one will be silently ignored
     beforeEvict: (resource: T) => Promise<void>;
   }>;
 }
@@ -39,128 +40,133 @@ const _createResourcePool = <T>(
   opts: InternalResourcePoolOptions<T>,
 ): ResourcePool<T> => {
   const state: ResourcePoolState<T> = {
-    shouldEvictionRun: false,
     resources: [],
   };
   const performEvict = F.flow(
-    (resource: T) => TE.of(resource),
-    // Side-effect: invoke beforeEvict and forget error
-    TE.chainFirstW((r: T) =>
-      asyncSideEffectIgnoreErrors(opts.inits?.beforeEvict, r),
-    ),
-    // Actual task: invoke destroy (and the caller will forget error)
-    TE.chain((r) =>
+    (resource: T) =>
+      asyncSideEffectIgnoreErrors(opts.inits?.beforeEvict, resource),
+    TE.chain(([r]) =>
       TE.tryCatch(async () => await opts.resource.destroy(r), E.toError),
     ),
   );
-  const createResourceTask = poolCreateResource(opts, state, async () => {
-    while (state.shouldEvictionRun) {
+  const runEviction = async () => {
+    while (state.resources.length > 0) {
       await new Promise((resolve) =>
         setTimeout(resolve, opts.evictionCheckRunInterval),
       );
-      // If someone changed state.shouldEvictionRun to true while awaiting, it would've also emptied the resource array.
       const now = Date.now();
       let x = 0;
       while (x < state.resources.length) {
-        const returnedAt = state.resources[x].returnedAt;
+        const item = state.resources[x];
         if (
+          item &&
           // Not currently in use
-          returnedAt !== undefined &&
+          item.returnedAt !== undefined &&
           // And been here for a while
-          now - returnedAt > opts.evictAfterIdle
+          now - item.returnedAt > opts.evictAfterIdle
         ) {
-          const [resourceToEvict] = state.resources.splice(x, 1);
-          void performEvict(resourceToEvict.resource)();
+          state.resources.splice(x, 1);
+          void performEvict(item.resource)();
         } else {
           ++x;
         }
       }
     }
-  });
-  // Notice that acquire functionality does *not* remove resources from state array!
-  // That way we can close resources when needed even when they are borrowed
+  };
   const acquire = () =>
     F.pipe(
       state.resources,
-      // Find resource which is not in use
-      A.findFirst((r: Resource<T>) => r.returnedAt !== undefined),
-      // If we succeed, mark it as being in use in a side effect (chainFirst)
-      // The remaining statements will not use the value anymore, thus returning it directly
-      O.chainFirst((r) => ((r.returnedAt = undefined), O.some(r))),
-      O.map((r) => r.resource),
-      E.fromOption(() => isRoomForResource(opts.maxCount, state.resources)),
-      TE.fromEither,
-      TE.mapLeft((hasRoom) =>
-        hasRoom
-          ? createResourceTask
-          : TE.left(new Error("No more resource slots available in the pool")),
+      // Find first free resource (and map from "Resource<T> | undefined" to "Resource<T>")
+      A.findFirstMap((r) =>
+        r && r.returnedAt !== undefined ? O.some(r) : O.none,
       ),
-      TE.swap,
-      TE.flattenW,
-      TE.toUnion,
-      T.map((r) =>
-        r instanceof Error ? E.left<Error, T>(r) : E.right<Error, T>(r),
+      // If found, then mark as reserved
+      O.chainFirst((r) => ((r.returnedAt = undefined), O.some("ignored"))),
+      O.getOrElseW(() =>
+        // If not found, then start process of creating new one
+        F.pipe(
+          state.resources.length,
+          E.fromPredicate(
+            (len) => isRoomForResource(opts.maxCount, len),
+            () => new Error("No more resource slots available in the pool"),
+          ),
+          // Before doing async, mark that we are reserved this array slot for future use
+          E.chainFirst((idx) => E.of((state.resources[idx] = undefined))),
+          TE.fromEither,
+          // Acquire resource by calling callback
+          TE.chainW((idx) =>
+            TE.tryCatch(
+              async () => ({ idx, resource: await opts.resource.create() }),
+              (error) => ({ error: E.toError(error), idx }),
+            ),
+          ),
+          // Notify about creation
+          TE.chainW((idxAndResource) =>
+            TE.tryCatch(
+              async () => (
+                await opts.inits?.afterCreate?.(idxAndResource.resource),
+                idxAndResource
+              ),
+              (error) => ({ error: E.toError(error), idx: idxAndResource.idx }),
+            ),
+          ),
+          // Perform cleanup and extract resource
+          TE.bimap(
+            (err) => {
+              // We have errored -> clean up reserved slot if needed
+              const isError = err instanceof Error;
+              if (!isError) {
+                state.resources.splice(err.idx, 1);
+              }
+              // Return Error object
+              return isError ? err : err.error;
+            },
+            ({ idx, resource }) => {
+              // We have succeeded -> save the result
+              state.resources[idx] = new Resource(resource);
+              // Start eviction process if this was first resource
+              if (idx === 0) {
+                void runEviction();
+              }
+              // Return the resource
+              return resource;
+            },
+          ),
+        ),
       ),
+      // Lift sync version to async
+      (resourceOrTask) =>
+        resourceOrTask instanceof Resource
+          ? TE.of<Error, T>(resourceOrTask.resource)
+          : resourceOrTask,
+      // Finally remember to notify about acquirement
       TE.chainFirst((r) =>
-        asyncSideEffectIgnoreErrors(opts.inits?.afterAcquire, r),
+        TE.tryCatch(async () => await opts.inits?.afterAcquire?.(r), E.toError),
       ),
-      TE.toUnion,
-      // Throw the error if it is there
-      T.map<Error | T, T>(common.throwIfError),
     );
-  const release = F.flow(
-    (resource: T) =>
-      A.findFirst<Resource<T>>((r) => r.resource === resource)(state.resources),
-    O.chainFirst((r) => ((r.returnedAt = Date.now()), O.some(r))),
-    E.fromOption(() => new Error("Given resource was not part of this pool")),
-    TE.fromEither,
-    TE.chainFirst((r) =>
-      asyncSideEffectIgnoreErrors(opts.inits?.afterRelease, r.resource),
-    ),
-    T.map(() => {}),
-  );
-  const ac = async () => {
-    const existing = state.resources.find((r) => r?.returnedAt !== undefined);
-    let resource: T | undefined;
-    let thisIndex: number | undefined;
-    try {
-      if (existing) {
-        existing.returnedAt = undefined;
-        resource = existing.resource;
-      } else {
-        const len = state.resources.length;
-        if (isRoomForResource(opts.maxCount, len)) {
-          thisIndex = len;
-          // Before doing async, add undefined to array to signal we are in middle of adding it
-          state.resources.push(undefined);
-          resource = await opts.resource.create();
-          if (resource === undefined) {
-            throw new Error("Pooling undefineds not possible.");
-          }
-          // Let errors flow thru
-          await opts.inits?.afterCreate?.(resource);
-        } else {
-          throw new Error("Pool reached max capability");
-        }
-      }
-      // Let errors flow thru
-      await opts.inits?.afterAcquire?.(resource);
-
-      return resource;
-    } finally {
-      if (thisIndex !== undefined) {
-        if (resource === undefined) {
-          state.resources.splice(thisIndex, 1);
-        } else {
-          state.resources[thisIndex] = { resource, returnedAt: undefined };
-        }
-      }
-    }
-  };
-  return {
-    acquire: () => acquire()(),
-    release: (resource) => release(resource)(),
-  };
+  const release = (resource: T) =>
+    F.pipe(
+      state.resources,
+      // Find the resource from state
+      A.findFirstMap((r) =>
+        r && r.resource === resource ? O.some(r) : O.none,
+      ),
+      // Create error if not found
+      E.fromOption(() => new Error("Given resource was not part of this pool")),
+      // Remember when it was returned
+      E.chainFirst((r) => ((r.returnedAt = Date.now()), E.right("ignored"))),
+      TE.fromEither,
+      // Notify about release
+      TE.chain((r) =>
+        TE.tryCatch(
+          async () => opts.inits?.afterRelease?.(r.resource),
+          E.toError,
+        ),
+      ),
+      // Map success (resource) to void
+      TE.map(() => {}),
+    );
+  return { acquire, release };
 };
 
 const defaultOptions = {
@@ -169,69 +175,20 @@ const defaultOptions = {
 };
 
 interface ResourcePoolState<T> {
-  shouldEvictionRun: boolean;
   resources: Array<Resource<T> | undefined>;
 }
 
-interface Resource<T> {
-  resource: T;
-  returnedAt: number | undefined; // undefined - currently in use. Otherwise timestamp in ms.
+class Resource<T> {
+  public constructor(
+    public readonly resource: T,
+    public returnedAt: number | undefined = undefined, // undefined - currently in use. Otherwise timestamp in ms.
+  ) {}
 }
 
 type InternalResourcePoolOptions<T> = typeof defaultOptions &
   ResourcePoolOptions<T>;
-
 const isRoomForResource = (maxCount: number | undefined, arrayLength: number) =>
   maxCount === undefined || arrayLength < maxCount;
-
-const makeResource = <T>(resource: T): Resource<T> => ({
-  resource,
-  returnedAt: undefined,
-});
-
-const poolCreateResource = <T>(
-  {
-    maxCount,
-    resource: { create, destroy },
-    inits,
-  }: InternalResourcePoolOptions<T>,
-  state: ResourcePoolState<T>,
-  runEviction: () => Promise<void>,
-) =>
-  F.pipe(
-    // Invoke creation callback
-    TE.tryCatch(async () => await create(), E.toError),
-    // Invoke callback to initialize newly created resource
-    // It is side-effect (we ignore return value), so use chainFirst
-    TE.chainFirst((r) =>
-      TE.tryCatch(async () => await inits?.afterCreate?.(r), E.toError),
-    ),
-    // On success, check again (since we async'ed) whether we have room for more
-    // Again, this is side-effect, and thus using chainFirst
-    TE.chainFirst((resource) =>
-      isRoomForResource(maxCount, state.resources)
-        ? // There is room -> add to array, and return it
-          TE.of(F.pipe(makeResource(resource), (r) => state.resources.push(r)))
-        : // There is no more room -> destroy resource, swallow error from destruction, and return error about no more resources
-          TE.leftTask(
-            F.pipe(
-              TE.tryCatch(async () => destroy(resource), E.toError),
-              TE.map(
-                () => new Error("No more resource slots available in the pool"),
-              ),
-              TE.toUnion,
-            ),
-          ),
-    ),
-    // Start periodic eviction here as side-effect
-    TE.chainFirst(() => {
-      if (!state.shouldEvictionRun) {
-        state.shouldEvictionRun = true;
-        void runEviction();
-      }
-      return TE.of(undefined);
-    }),
-  );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const asyncSideEffectIgnoreErrors = <TArgs extends Array<any>>(
@@ -241,16 +198,5 @@ const asyncSideEffectIgnoreErrors = <TArgs extends Array<any>>(
   F.pipe(
     TE.tryCatch(async () => await sideEffect?.(...args), E.toError),
     TE.toUnion,
-    T.map(() => E.of<Error, string>("Lose error on purpose")),
+    T.map(() => E.of<Error, TArgs>(args)),
   );
-
-const asyncIgnoreErrors = async <TArgs extends Array<any>>(
-  sideEffect: ((...args: TArgs) => Promise<void>) | undefined,
-  ...args: TArgs
-) => {
-  try {
-    await sideEffect?.(...args);
-  } catch {
-    // Ignore
-  }
-};

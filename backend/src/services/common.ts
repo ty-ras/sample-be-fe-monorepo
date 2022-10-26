@@ -2,23 +2,30 @@ import * as t from "io-ts";
 import * as tyrasData from "@ty-ras/data-io-ts";
 import type * as db from "pg";
 import type * as pooling from "./pooling";
+import type { taskEither as TE } from "fp-ts";
+
+export type DBClient = db.Client;
 
 export type DBPool = pooling.ResourcePool<db.Client>;
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface UnauthenticatedInput {
-  db: DBPool;
+  // db: DBPool;
 }
 
 export type AuthenticatedInput = UnauthenticatedInput & {
   username: string;
 };
 
-export interface Service<
-  TValidation extends t.Mixed,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TFunctionality extends (...args: Array<any>) => any,
-> {
-  functionality: TFunctionality;
-  validation: TValidation;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface ValidatedAnyExecutor<TArgs extends Array<any>, T> {
+  task: (...args: TArgs) => TE.TaskEither<Error, T>;
+  validation: t.Type<T>;
+}
+
+export interface Service<TParams, TReturn> {
+  validation: t.Type<TReturn>;
+  createTask: (pool: DBPool) => (arg: TParams) => TE.TaskEither<Error, TReturn>;
 }
 
 export const getErrorObject = (error: string | Error | t.Errors): Error =>

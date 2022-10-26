@@ -1,28 +1,31 @@
 import * as protocol from "../../protocol";
 import * as aux from "../auxiliary";
-import * as services from "../../services/things";
+import * as services from "../../services";
 import * as data from "@ty-ras/data-backend-io-ts";
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 
-export const createThingsEndpoints = (builder: aux.Builder) => [
+export const createThingsEndpoints = (
+  builder: aux.Builder,
+  dbPool: services.DBPool,
+) => [
   builder.atURL`/${"id"}`
     .validateURLData(data.url({ id: thingObject.props.id }))
-    .batchSpec(readThing)
-    .batchSpec(updateThing)
-    .batchSpec(deleteThing)
+    .batchSpec(readThing(dbPool))
+    .batchSpec(updateThing(dbPool))
+    .batchSpec(deleteThing(dbPool))
     .createEndpoint({
       openapi: { summary: "Read, update, or delete a thing" },
     }),
   builder.atURL``
-    .batchSpec(createThing)
-    .batchSpec(getThings)
+    .batchSpec(createThing(dbPool))
+    .batchSpec(getThings(dbPool))
     .createEndpoint({
       openapi: {
         summary: "Query thing(s)",
       },
     }),
-  builder.atURL`/statistics`.batchSpec(getThingsCount).createEndpoint({
+  builder.atURL`/statistics`.batchSpec(getThingsCount(dbPool)).createEndpoint({
     openapi: {
       summary: "Get amount of things",
     },
@@ -47,7 +50,7 @@ const exampleThing: t.TypeOf<typeof thingObject> = {
 const createThing = aux
   .withResponseBody<protocol.api.things.Create>(thingObject)
   .createEndpoint(
-    services.createThing.functionality,
+    services.createThing,
     aux.authenticatedStateSpec,
     {
       method: "POST",
@@ -70,19 +73,13 @@ const createThing = aux
         },
       },
     },
-    ({
-      state: {
-        db: { db },
-        username,
-      },
-      body,
-    }) => [{ db, username, thing: body }] as const,
+    ({ state: { username }, body }) => ({ username, thing: body }),
   );
 
 const readThing = aux
   .withResponseBody<protocol.api.things.Read>(thingObject)
   .createEndpoint(
-    services.getThing.functionality,
+    services.getThing,
     aux.authenticatedStateSpec,
     {
       method: "GET",
@@ -100,19 +97,13 @@ const readThing = aux
         },
       },
     },
-    ({
-      state: {
-        db: { db },
-        username,
-      },
-      url,
-    }) => [{ db, username, thing: url }] as const,
+    ({ state: { username }, url }) => ({ username, thing: url }),
   );
 
 const updateThing = aux
   .withResponseBody<protocol.api.things.Update>(thingObject)
   .createEndpoint(
-    services.updateThing.functionality,
+    services.updateThing,
     aux.authenticatedStateSpec,
     {
       method: "PATCH",
@@ -145,19 +136,13 @@ const updateThing = aux
         },
       },
     },
-    ({
-      state: {
-        db: { db },
-        username,
-      },
-      url,
-    }) => [{ db, username, thing: url }] as const,
+    ({ state: { username }, url }) => ({ username, thing: url }),
   );
 
 const deleteThing = aux
   .withResponseBody<protocol.api.things.Delete>(thingObject)
   .createEndpoint(
-    services.deleteThing.functionality,
+    services.deleteThing,
     aux.authenticatedStateSpec,
     {
       method: "DELETE",
@@ -178,19 +163,13 @@ const deleteThing = aux
         },
       },
     },
-    ({
-      state: {
-        db: { db },
-        username,
-      },
-      url,
-    }) => [{ db, username, thing: url }] as const,
+    ({ state: { username }, url }) => ({ username, thing: url }),
   );
 
 const getThings = aux
   .withResponseBody<protocol.api.things.ReadAll>(t.array(thingObject))
   .createEndpoint(
-    services.getThings.functionality,
+    services.getThings,
     aux.authenticatedStateSpec,
     {
       method: "GET",
@@ -213,12 +192,7 @@ const getThings = aux
         },
       },
     },
-    ({
-      state: {
-        db: { db },
-        username,
-      },
-    }) => [{ username, db }] as const,
+    ({ state: { username } }) => ({ username }),
   );
 
 // Notice: this is not behind authentication.
@@ -228,7 +202,7 @@ const getThingsCount = aux
     services.getThingsCount.validation,
   )
   .createEndpoint(
-    services.getThingsCount.functionality,
+    services.getThingsCount,
     aux.unauthenticatedStateSpec,
     {
       method: "GET",
@@ -251,9 +225,5 @@ const getThingsCount = aux
         },
       },
     },
-    ({
-      state: {
-        db: { db },
-      },
-    }) => [{ db }] as const,
+    () => ({}),
   );

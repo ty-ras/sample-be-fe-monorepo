@@ -6,10 +6,8 @@ import * as openapi from "@ty-ras/metadata-openapi";
 export const mdArgsBase = <TOutput>(
   output: { description: string; example: TOutput },
   operation: openapi.OpenAPIArgumentsStatic["operation"],
-): types.EndpointSpec<
-  protocol.ProtocolSpecCore<string, any>,
-  any,
-  any
+): ReturnType<
+  types.EndpointSpec<protocol.ProtocolSpecCore<string, any>, any, any>
 >["mdArgs"]["openapi"] => ({
   urlParameters: undefined,
   queryParameters: undefined,
