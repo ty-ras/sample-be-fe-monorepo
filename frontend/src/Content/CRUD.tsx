@@ -1,4 +1,12 @@
-import { Box, Code, Container, Heading, Spinner, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Code,
+  Container,
+  Heading,
+  Spinner,
+  Text,
+} from "@chakra-ui/react";
 import * as data from "@ty-ras/data-frontend";
 import type * as proto from "@ty-ras/protocol";
 import * as dataGeneric from "@ty-ras/data";
@@ -49,8 +57,10 @@ const ThingManager = () => {
       ) : things.error === "none" ? (
         things.data.map((thing) => <Thing key={thing.id} thing={thing} />)
       ) : (
-        <Text>Error: {JSON.stringify(things.errorInfo)}</Text>
-        // TODO retry button -> setThings(undefined)
+        <Box>
+          <Text>Error: {JSON.stringify(things.errorInfo)}</Text>
+          <Button onClick={() => setThings(undefined)}>Retry</Button>
+        </Box>
       )}
     </Box>
   );

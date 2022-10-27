@@ -2,17 +2,18 @@ import {
   function as F,
   option as O,
   array as A,
+  readonlyArray as RA,
   either as E,
   task as T,
   taskEither as TE,
 } from "fp-ts";
 
-export interface ResourcePoolWithAdministration<T> {
-  pool: ResourcePool<T>;
+export interface ResourcePoolWithAdministration<T, TAcquireParameters> {
+  pool: ResourcePool<T, TAcquireParameters>;
   administration: ResourcePoolAdministration<T>;
 }
-export interface ResourcePool<T> {
-  acquire: () => TE.TaskEither<Error, T>;
+export interface ResourcePool<T, TAcquireParameters = void> {
+  acquire: (parameters: TAcquireParameters) => TE.TaskEither<Error, T>;
   release: (client: T) => TE.TaskEither<Error, void>;
 }
 
@@ -22,14 +23,13 @@ export interface ResourcePoolAdministration<T> {
   getDefaultResourceIdleTime: () => number; // Milliseconds
   getCurrentResourceCount: () => number;
   runEviction: (
-    resourceIdleTime?: number | ((resource: T) => number),
-  ) => T.Task<{ resourcesDeleted: number; errors: Array<Error> }>;
+    resourceIdleTime?: ResourceIdleTimeCustomization<T>,
+  ) => T.Task<EvictionResult>;
 }
 
 export interface ResourcePoolOptions<T> {
   minCount?: number; // Default 0
   maxCount?: number;
-  evictionCheckRunInterval?: number; // Milliseconds, default 1000
   idleTimeBeforeEvict: number; // Milliseconds
   resource: {
     create: () => Promise<T>;
@@ -47,39 +47,12 @@ const _createResourcePool = <T>({
   maxCount,
   idleTimeBeforeEvict,
   ...opts
-}: InternalResourcePoolOptions<T>): ResourcePoolWithAdministration<T> => {
+}: InternalResourcePoolOptions<T>): ResourcePoolWithAdministration<T, void> => {
   const state: ResourcePoolState<T> = {
     resources: [],
     minCount,
     maxCount,
     idleTimeBeforeEvict,
-  };
-  const performEvict = F.flow((resource: T) =>
-    TE.tryCatch(async () => await opts.resource.destroy(resource), E.toError),
-  );
-  const runEviction = async () => {
-    while (state.resources.length > 0) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, opts.evictionCheckRunInterval),
-      );
-      const now = Date.now();
-      let x = state.minCount;
-      while (x < state.resources.length) {
-        const item = state.resources[x];
-        if (
-          item &&
-          // Not currently in use
-          item.returnedAt !== undefined &&
-          // And been here for a while
-          now - item.returnedAt > state.idleTimeBeforeEvict
-        ) {
-          state.resources.splice(x, 1);
-          void performEvict(item.resource)();
-        } else {
-          ++x;
-        }
-      }
-    }
   };
   const acquire = () =>
     F.pipe(
@@ -122,10 +95,6 @@ const _createResourcePool = <T>({
             ({ idx, resource }) => {
               // We have succeeded -> save the result
               state.resources[idx] = new Resource(resource);
-              // Start eviction process if this was first resource
-              if (idx === 0) {
-                void runEviction();
-              }
               // Return the resource
               return resource;
             },
@@ -153,6 +122,57 @@ const _createResourcePool = <T>({
       // Map success (resource) to void
       TE.map(() => {}),
     );
+
+  const runEviction = (resourceIdleTime?: ResourceIdleTimeCustomization<T>) => {
+    const shouldEvict: ResourceIdleTimeCustomizationFunction<T> =
+      resourceIdleTime === undefined
+        ? ({ returnedAt, now }) => now - returnedAt > state.idleTimeBeforeEvict
+        : typeof resourceIdleTime === "number"
+        ? ({ returnedAt, now }) => now - returnedAt > resourceIdleTime
+        : resourceIdleTime;
+    return F.pipe(
+      state.resources,
+      A.reduceWithIndex<Resource<T> | undefined, EvictReduceState<T>>(
+        { now: Date.now(), toBeEvicted: [], toBeRetained: [] },
+        (idx, reduceState, r) => {
+          if (
+            idx >= state.minCount &&
+            r &&
+            r.returnedAt !== undefined &&
+            shouldEvict({
+              now: reduceState.now,
+              returnedAt: r.returnedAt,
+              resource: r.resource,
+            })
+          ) {
+            reduceState.toBeEvicted.push(r.resource);
+          } else {
+            reduceState.toBeRetained.push(r);
+          }
+          return reduceState;
+        },
+      ),
+      ({ toBeEvicted, toBeRetained }) => {
+        state.resources = toBeRetained;
+        return toBeEvicted;
+      },
+      T.traverseArray((resource) =>
+        TE.tryCatch(
+          async () => await opts.resource.destroy(resource),
+          E.toError,
+        ),
+      ),
+      T.map((results) => ({
+        resourcesDeleted: results.length,
+        errors: F.pipe(
+          results,
+          RA.filter(E.isLeft),
+          RA.map((l) => l.left),
+        ),
+      })),
+    );
+  };
+
   return {
     pool: { acquire, release },
     administration: {
@@ -160,8 +180,7 @@ const _createResourcePool = <T>({
       getMinCount: () => state.minCount,
       getMaxCount: () => state.maxCount,
       getDefaultResourceIdleTime: () => state.idleTimeBeforeEvict,
-      runEviction: (resourceIdleTime) =>
-        T.of({ resourcesDeleted: 0, errors: [] }),
+      runEviction,
     },
   };
 };
@@ -189,3 +208,24 @@ type InternalResourcePoolOptions<T> = typeof defaultOptions &
   ResourcePoolOptions<T>;
 const isRoomForResource = (maxCount: number | undefined, arrayLength: number) =>
   maxCount === undefined || arrayLength < maxCount;
+
+interface EvictReduceState<T> {
+  now: number;
+  toBeEvicted: Array<T>;
+  toBeRetained: Array<Resource<T> | undefined>;
+}
+
+export type ResourceIdleTimeCustomization<T> =
+  | number
+  | ResourceIdleTimeCustomizationFunction<T>;
+
+export type ResourceIdleTimeCustomizationFunction<T> = (input: {
+  returnedAt: number;
+  now: number;
+  resource: T;
+}) => boolean;
+
+export interface EvictionResult {
+  resourcesDeleted: number;
+  errors: ReadonlyArray<Error>;
+}

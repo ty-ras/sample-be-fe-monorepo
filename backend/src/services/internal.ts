@@ -1,7 +1,7 @@
 import * as t from "io-ts";
 import type * as db from "pg";
 import * as common from "./common";
-import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
+import { function as F, either as E, taskEither as TE } from "fp-ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const createSimpleDBService = <TParams, T>({

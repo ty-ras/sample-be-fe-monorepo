@@ -1,13 +1,14 @@
 import * as cognito from "@aws-sdk/client-cognito-identity-provider";
 import { function as F, task as T, taskEither as TE } from "fp-ts";
-import * as common from "./common";
+import * as common from "../common";
+import * as api from "./api";
 
 // Useful resource: https://github.com/aws-amplify/amplify-js/blob/main/packages/amazon-cognito-identity-js/src/CognitoUser.js
 
 export const createAuthenticator = (
   endpointOrRegion: string,
   clientId: string,
-): Authenticator => {
+): api.Authenticator => {
   const endpointIsURL = endpointOrRegion.startsWith("http");
   const client = new cognito.CognitoIdentityProviderClient({
     endpoint: endpointIsURL ? endpointOrRegion : undefined,
@@ -35,8 +36,8 @@ export const createAuthenticator = (
         common.makeError,
       ),
     TE.map(
-      ({ AuthenticationResult: result, ...info }): LoginResult =>
-        result && result.AccessToken && result.RefreshToken
+      ({ AuthenticationResult: result, ...info }): api.LoginResult =>
+        result && result.AccessToken
           ? {
               result: "tokens",
               accessToken: result.AccessToken,
@@ -60,7 +61,6 @@ export const createAuthenticator = (
       task(cognito.AuthFlowType.REFRESH_TOKEN_AUTH, {
         REFRESH_TOKEN: refreshToken,
       }),
-    // RevokeTokenCommand, (Admin)UserGlobalSignOutCommand, don't work
     logout: async (refreshToken) => {
       await client.send(
         new cognito.RevokeTokenCommand({
@@ -71,25 +71,3 @@ export const createAuthenticator = (
     },
   };
 };
-
-export type LoginResult =
-  | {
-      result: "tokens";
-      accessToken: string;
-      refreshToken: string;
-    }
-  | {
-      result: "mfa";
-      challengeName: string;
-    };
-
-export interface Authenticator {
-  login: (
-    username: string,
-    password: string,
-  ) => TE.TaskEither<Error, LoginResult>;
-  refreshTokens: (refreshToken: string) => TE.TaskEither<Error, LoginResult>;
-  logout: (refreshToken: string) => Promise<void>;
-}
-
-// TODO MFA things

@@ -6,6 +6,7 @@ import * as api from "../api";
 import type * as config from "../config";
 import * as auth from "./auth";
 import * as db from "./db";
+import * as services from "../services";
 import { function as F } from "fp-ts";
 
 export const startServer = async ({
@@ -72,4 +73,17 @@ export const startServer = async ({
     serverConfig.host,
     serverConfig.port,
   );
+
+  // Start eviction process
+  void runDBPoolEviction(administration);
+};
+
+const runDBPoolEviction = async (
+  poolAdmin: services.ResourcePoolAdministration<services.DBClient>,
+) => {
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+    await poolAdmin.runEviction()();
+  }
 };
