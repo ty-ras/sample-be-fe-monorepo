@@ -5,17 +5,39 @@ import * as data from "@ty-ras/data-io-ts";
 import { function as F, taskEither as TE } from "fp-ts";
 
 // Runtime validation for rows of 'things' table.
+const nonEmptyString = t.refinement(
+  t.string,
+  (s) => s.length > 0,
+  "NonEmptyString",
+);
+// We could also use 'exact' here and just use 'RETURNING *' in SQLs.
+// However, that would be just excess traffic between BE and DB, and also would cause construction of new object on every row.
+// Therefore, we use vasic 'type' validation + construct the correct column list to use it in queries
 export const thingValidation = t.type({
-  id: t.string,
+  id: t.string, // TODO UUID string
   payload: t.string,
   created_at: data.instanceOf(Date, "Date"),
   updated_at: data.instanceOf(Date, "Date"),
+  created_by: nonEmptyString,
+  updated_by: nonEmptyString,
 });
+
+// Will be: "id, payload, created_at, created_by, updated_at, updated_by"
+const thingColumnListString = internal.rawSQL(
+  internal.createSQLColumnList<Thing>({
+    id: undefined,
+    payload: undefined,
+    created_at: undefined,
+    created_by: undefined,
+    updated_at: undefined,
+    updated_by: undefined,
+  }),
+);
 
 // CRUD
 export const createThing = internal
   .createSimpleDBService(
-    internal.withSQL`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${"id"}, gen_random_uuid()), ${"payload"}, ${"username"}) RETURNING *`.validateRow(
+    internal.withSQL`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${"id"}, gen_random_uuid()), ${"payload"}, ${"username"}) RETURNING ${thingColumnListString}`.validateRow(
       thingValidation,
     ),
   )
@@ -35,7 +57,7 @@ export const getThing = internal
 
 export const updateThing = internal
   .createSimpleDBService(
-    internal.withSQL`UPDATE things t SET updated_by = ${"username"}, payload = CASE WHEN ${"payloadPresent"} IS TRUE THEN ${"payload"} ELSE t.payload WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING *`.validateRow(
+    internal.withSQL`UPDATE things t SET updated_by = ${"username"}, payload = CASE WHEN ${"payloadPresent"} IS TRUE THEN ${"payload"} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`.validateRow(
       thingValidation,
     ),
   )
@@ -48,7 +70,7 @@ export const updateThing = internal
 
 export const deleteThing = internal
   .createSimpleDBService(
-    internal.withSQL`UPDATE things SET deleted_by = ${"username"}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING *`.validateRow(
+    internal.withSQL`UPDATE things SET deleted_by = ${"username"}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`.validateRow(
       thingValidation,
     ),
   )
@@ -60,9 +82,9 @@ export const deleteThing = internal
 // Getting more than one thing at a time
 export const getThings = internal
   .createSimpleDBService(
-    internal
-      .withSQL("SELECT * FROM things WHERE is_deleted IS FALSE")
-      .validateRows(thingValidation),
+    internal.withSQL`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`.validateRows(
+      thingValidation,
+    ),
   )
   .createFlow<common.AuthenticatedInput>(({ username }) => {
     // eslint-disable-next-line no-console
@@ -87,7 +109,10 @@ export const getThingsCount = internal
 
 // Types
 export type Thing = t.TypeOf<typeof thingValidation>;
-export type ThingPayload = Omit<Thing, "id" | "created_at" | "updated_at">;
+export type ThingPayload = Omit<
+  Thing,
+  "id" | "created_at" | "updated_at" | "created_by" | "updated_by"
+>;
 export type ThingID = Pick<Thing, "id">;
 export type ThingInput<T> = { thing: T };
 

@@ -151,7 +151,7 @@ const setTokensToState = (
     ),
     E.bindW("accessToken", () => nonEmptyStringValidation.decode(accessToken)),
     E.bindW("unvalidatedTokenContents", ({ accessToken }) =>
-      E.tryCatch(() => jwtDecode(accessToken), common.makeError),
+      E.tryCatch(() => jwtDecode(accessToken), E.toError),
     ),
     E.bindW("tokenContents", ({ unvalidatedTokenContents }) =>
       tokenContentsValidation.decode(unvalidatedTokenContents),
@@ -160,7 +160,7 @@ const setTokensToState = (
       set({
         username: tokenContents.username,
         accessToken,
-        accessTokenExpires: tokenContents.exp,
+        accessTokenExpires: tokenContents.exp * 1000, // Expiration time is in seconds, while Date.now() is in milliseconds.
         ...(refreshToken ? { refreshToken } : {}),
       });
     }),

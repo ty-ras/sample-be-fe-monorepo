@@ -64,8 +64,13 @@ declare namespace data {
       // Soft-delete columns
       created_at: common.Timestamp;
       updated_at: common.Timestamp;
+      created_by: string;
+      updated_by: string;
     }
-    export type ThingPayload = Omit<Thing, "id" | "created_at" | "updated_at">;
+    export type ThingPayload = Omit<
+      Thing,
+      "id" | "created_at" | "updated_at" | "created_by" | "updated_by"
+    >;
     export type ThingID = Pick<Thing, "id">;
   }
   namespace common {

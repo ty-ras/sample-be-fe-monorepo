@@ -19,20 +19,30 @@ export const createSimpleDBService = <TParams, T>({
 
 export const withSQL: WithSQL = ((
   templateOrString: string | TemplateStringsArray,
-  ...args: ReadonlyArray<string>
+  ...args: ReadonlyArray<SQLTemplateParameter>
 ) => {
+  const paramNames: Array<string> = [];
+  const queryString =
+    typeof templateOrString === "string"
+      ? templateOrString
+      : constructTemplateString(templateOrString, args, (arg, idx) => {
+          if (typeof arg === "string") {
+            paramNames.push(arg);
+            arg = `$${idx + 1}`;
+          } else {
+            arg = arg.str;
+          }
+          return arg;
+        });
   const validateRows = <T>(validation: t.Decoder<unknown, T>) => {
-    if (typeof templateOrString === "string") {
+    if (paramNames.length === 0) {
       return {
         validation,
         task: F.flow(
           // Execute query
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           (db: common.DBClient, _: void) =>
-            TE.tryCatch(
-              async () => await db.query(templateOrString),
-              E.toError,
-            ),
+            TE.tryCatch(async () => await db.query(queryString), E.toError),
           // Validate query result
           TE.chainW(({ rows }) => TE.fromEither(validation.decode(rows))),
           TE.mapLeft(common.getErrorObject),
@@ -46,11 +56,8 @@ export const withSQL: WithSQL = ((
             TE.tryCatch(
               async () =>
                 await db.query(
-                  templateOrString.reduce(
-                    (curSQL, fragment, idx) => `${curSQL}${fragment}$${idx}`,
-                    "",
-                  ),
-                  args.map((parameterName) => parameters[parameterName]),
+                  queryString,
+                  paramNames.map((paramName) => parameters[paramName]),
                 ),
               E.toError,
             ),
@@ -72,11 +79,17 @@ export const withSQL: WithSQL = ((
 
 export type WithSQL = {
   (sqlString: string): ValidateQuery<void>;
-  <TArgs extends [string, ...Array<string>]>(
+  <TArgs extends [SQLTemplateParameter, ...Array<SQLTemplateParameter>]>(
     template: TemplateStringsArray,
     ...parameterNames: TArgs
-  ): ValidateQuery<Record<TArgs[number], unknown>>;
+  ): ValidateQuery<
+    TArgs[number] extends AsIsSQL
+      ? void
+      : Record<TArgs[number] & string, unknown>
+  >;
 };
+
+export type SQLTemplateParameter = string | AsIsSQL;
 
 export interface ValidateQuery<TParams> {
   validateRows: <T extends t.Mixed>(
@@ -123,3 +136,25 @@ export const arrayOfOneElement = <TValidation extends t.Mixed>(
         (a) => [a],
       ),
     );
+
+export const createSQLColumnList = <T>(props: { [P in keyof T]: unknown }) =>
+  Object.keys(props).join(", ");
+
+export class AsIsSQL {
+  public constructor(public readonly str: string) {}
+}
+
+export const rawSQL = (str: string) => new AsIsSQL(str);
+
+const constructTemplateString = <T>(
+  fragments: TemplateStringsArray,
+  args: ReadonlyArray<T>,
+  transformArg: (arg: T, idx: number, fragment: string) => string,
+) =>
+  fragments.reduce(
+    (curString, fragment, idx) =>
+      `${curString}${fragment}${
+        idx >= args.length ? "" : transformArg(args[idx], idx, fragment)
+      }`,
+    "",
+  );

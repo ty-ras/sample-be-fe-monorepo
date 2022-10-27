@@ -45,6 +45,8 @@ const exampleThing: t.TypeOf<typeof thingObject> = {
   payload: "Dummy payload",
   created_at: new Date(0),
   updated_at: new Date(0),
+  created_by: "User",
+  updated_by: "User",
 };
 
 const createThing = aux
@@ -136,7 +138,10 @@ const updateThing = aux
         },
       },
     },
-    ({ state: { username }, url }) => ({ username, thing: url }),
+    ({ state: { username }, url, body }) => ({
+      username,
+      thing: { ...url, ...body },
+    }),
   );
 
 const deleteThing = aux

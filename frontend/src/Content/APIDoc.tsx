@@ -5,7 +5,7 @@ import * as user from "../services/user";
 import { callRawHTTP } from "../services/backend";
 import * as common from "../services/common";
 import * as t from "io-ts";
-import { function as F, task as T, taskEither as TE } from "fp-ts";
+import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
 import { Spinner, Text, Container } from "@chakra-ui/react";
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -18,7 +18,7 @@ const APIDoc = () => {
 
   useEffect(() => {
     void F.pipe(
-      TE.tryCatch(async () => await getToken(), common.makeError),
+      TE.tryCatch(async () => await getToken(), E.toError),
       TE.chain((token) =>
         TE.tryCatch(
           async () =>
@@ -29,7 +29,7 @@ const APIDoc = () => {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
               })
             ).body,
-          common.makeError,
+          E.toError,
         ),
       ),
       TE.chainW((body) => TE.fromEither(t.UnknownRecord.decode(body))),

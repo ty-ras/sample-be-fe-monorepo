@@ -20,6 +20,7 @@ export const startServer = async ({
   const corsHandler = server.createCORSHandler({
     allowOrigin: cors.frontendAddress,
     allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: true,
   });
   await serverGeneric.listenAsync(
     server.createServer({

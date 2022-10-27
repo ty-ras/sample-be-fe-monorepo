@@ -7,9 +7,9 @@ CREATE OR REPLACE FUNCTION on_user_tracking_table_insert() RETURNS trigger
   AS $$
 BEGIN
   -- Initial state is updated_by being same as created_by, and deleted_by being NULL.
-  NEW.updated_by = OLD.created_by;
+  NEW.updated_by = NEW.created_by;
   NEW.deleted_by = NULL;
-  
+
   RETURN NEW;
 END;
 $$

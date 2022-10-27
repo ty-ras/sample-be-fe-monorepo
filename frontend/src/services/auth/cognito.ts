@@ -1,6 +1,5 @@
 import * as cognito from "@aws-sdk/client-cognito-identity-provider";
-import { function as F, task as T, taskEither as TE } from "fp-ts";
-import * as common from "../common";
+import { function as F, taskEither as TE, either as E } from "fp-ts";
 import * as api from "./api";
 
 // Useful resource: https://github.com/aws-amplify/amplify-js/blob/main/packages/amazon-cognito-identity-js/src/CognitoUser.js
@@ -33,7 +32,7 @@ export const createAuthenticator = (
               AuthParameters: parameters,
             }),
           ),
-        common.makeError,
+        E.toError,
       ),
     TE.map(
       ({ AuthenticationResult: result, ...info }): api.LoginResult =>
