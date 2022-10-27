@@ -167,7 +167,7 @@ const Thing = ({
               defaultValue={thing.payload}
               onBlur={(evt) => {
                 const newValue = evt.currentTarget.value;
-                if (newValue !== thing.payload) {
+                if (!isDeleting && !isUpdating && newValue !== thing.payload) {
                   setIsUpdating(true);
                   void F.pipe(
                     TE.tryCatch(
