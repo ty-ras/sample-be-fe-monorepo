@@ -14,7 +14,8 @@ export const startServer = async ({
   database,
 }: config.Config) => {
   const verifier = await auth.createNonThrowingVerifier(authentication);
-  const dbPool = new api.Database(db.createDBPool(database));
+  const { pool, administration } = db.createDBPool(database);
+  const dbPool = new api.Database(pool);
   const corsHandler = server.createCORSHandler({
     allowOrigin: cors.frontendAddress,
     allowHeaders: ["Content-Type", "Authorization"],

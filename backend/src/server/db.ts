@@ -10,7 +10,7 @@ export const createDBPool = ({
   ...database
 }: config.Config["database"]) =>
   services.createSimpleResourcePool({
-    evictAfterIdle: 10 * 60 * 1000, // 10minutes
+    idleTimeBeforeEvict: 10 * 60 * 1000, // 10minutes
     resource: {
       create: async () => {
         const client = new pg.Client({
@@ -19,25 +19,13 @@ export const createDBPool = ({
           database: dbName,
         });
         await client.connect();
+        console.log("Created connection");
+        await client.query(`SET ROLE "${role}"`);
         return client;
       },
-      destroy: (client) => client.end(),
-    },
-    inits: {
-      afterCreate: async (client) => {
-        await client.query(`SET ROLE "${role}"`);
-      },
-      afterAcquire: () => {
-        console.log("Acquired connection");
-        return Promise.resolve();
-      },
-      afterRelease: () => {
-        console.log("Released connection");
-        return Promise.resolve();
-      },
-      beforeEvict: () => {
-        console.log("Evicting connection");
-        return Promise.resolve();
+      destroy: async (client) => {
+        console.log("Destroying connection");
+        await client.end();
       },
     },
   });

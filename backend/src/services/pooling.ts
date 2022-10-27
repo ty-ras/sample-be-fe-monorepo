@@ -7,28 +7,34 @@ import {
   taskEither as TE,
 } from "fp-ts";
 
+export interface ResourcePoolWithAdministration<T> {
+  pool: ResourcePool<T>;
+  administration: ResourcePoolAdministration<T>;
+}
 export interface ResourcePool<T> {
   acquire: () => TE.TaskEither<Error, T>;
   release: (client: T) => TE.TaskEither<Error, void>;
+}
+
+export interface ResourcePoolAdministration<T> {
+  getMaxCount: () => number | undefined;
+  getMinCount: () => number;
+  getDefaultResourceIdleTime: () => number; // Milliseconds
+  getCurrentResourceCount: () => number;
+  runEviction: (
+    resourceIdleTime?: number | ((resource: T) => number),
+  ) => T.Task<{ resourcesDeleted: number; errors: Array<Error> }>;
 }
 
 export interface ResourcePoolOptions<T> {
   minCount?: number; // Default 0
   maxCount?: number;
   evictionCheckRunInterval?: number; // Milliseconds, default 1000
-  evictAfterIdle: number; // Milliseconds
+  idleTimeBeforeEvict: number; // Milliseconds
   resource: {
     create: () => Promise<T>;
     destroy: (resource: T) => Promise<void>;
   };
-  inits?: Partial<{
-    // Errors from these will flow thru acquire/release methods!
-    afterCreate: (resource: T) => Promise<void>;
-    afterAcquire: (resource: T) => Promise<void>;
-    afterRelease: (resource: T) => Promise<void>;
-    // Errors from this one will be silently ignored
-    beforeEvict: (resource: T) => Promise<void>;
-  }>;
 }
 
 // Throws if max count constraint is violated
@@ -36,18 +42,20 @@ export interface ResourcePoolOptions<T> {
 export const createSimpleResourcePool = <T>(opts: ResourcePoolOptions<T>) =>
   _createResourcePool(Object.assign({}, defaultOptions, opts));
 
-const _createResourcePool = <T>(
-  opts: InternalResourcePoolOptions<T>,
-): ResourcePool<T> => {
+const _createResourcePool = <T>({
+  minCount,
+  maxCount,
+  idleTimeBeforeEvict,
+  ...opts
+}: InternalResourcePoolOptions<T>): ResourcePoolWithAdministration<T> => {
   const state: ResourcePoolState<T> = {
     resources: [],
+    minCount,
+    maxCount,
+    idleTimeBeforeEvict,
   };
-  const performEvict = F.flow(
-    (resource: T) =>
-      asyncSideEffectIgnoreErrors(opts.inits?.beforeEvict, resource),
-    TE.chain(([r]) =>
-      TE.tryCatch(async () => await opts.resource.destroy(r), E.toError),
-    ),
+  const performEvict = F.flow((resource: T) =>
+    TE.tryCatch(async () => await opts.resource.destroy(resource), E.toError),
   );
   const runEviction = async () => {
     while (state.resources.length > 0) {
@@ -55,7 +63,7 @@ const _createResourcePool = <T>(
         setTimeout(resolve, opts.evictionCheckRunInterval),
       );
       const now = Date.now();
-      let x = 0;
+      let x = state.minCount;
       while (x < state.resources.length) {
         const item = state.resources[x];
         if (
@@ -63,7 +71,7 @@ const _createResourcePool = <T>(
           // Not currently in use
           item.returnedAt !== undefined &&
           // And been here for a while
-          now - item.returnedAt > opts.evictAfterIdle
+          now - item.returnedAt > state.idleTimeBeforeEvict
         ) {
           state.resources.splice(x, 1);
           void performEvict(item.resource)();
@@ -87,7 +95,7 @@ const _createResourcePool = <T>(
         F.pipe(
           state.resources.length,
           E.fromPredicate(
-            (len) => isRoomForResource(opts.maxCount, len),
+            (len) => isRoomForResource(state.maxCount, len),
             () => new Error("No more resource slots available in the pool"),
           ),
           // Before doing async, mark that we are reserved this array slot for future use
@@ -98,16 +106,6 @@ const _createResourcePool = <T>(
             TE.tryCatch(
               async () => ({ idx, resource: await opts.resource.create() }),
               (error) => ({ error: E.toError(error), idx }),
-            ),
-          ),
-          // Notify about creation
-          TE.chainW((idxAndResource) =>
-            TE.tryCatch(
-              async () => (
-                await opts.inits?.afterCreate?.(idxAndResource.resource),
-                idxAndResource
-              ),
-              (error) => ({ error: E.toError(error), idx: idxAndResource.idx }),
             ),
           ),
           // Perform cleanup and extract resource
@@ -139,10 +137,6 @@ const _createResourcePool = <T>(
         resourceOrTask instanceof Resource
           ? TE.of<Error, T>(resourceOrTask.resource)
           : resourceOrTask,
-      // Finally remember to notify about acquirement
-      TE.chainFirst((r) =>
-        TE.tryCatch(async () => await opts.inits?.afterAcquire?.(r), E.toError),
-      ),
     );
   const release = (resource: T) =>
     F.pipe(
@@ -156,17 +150,20 @@ const _createResourcePool = <T>(
       // Remember when it was returned
       E.chainFirst((r) => ((r.returnedAt = Date.now()), E.right("ignored"))),
       TE.fromEither,
-      // Notify about release
-      TE.chain((r) =>
-        TE.tryCatch(
-          async () => opts.inits?.afterRelease?.(r.resource),
-          E.toError,
-        ),
-      ),
       // Map success (resource) to void
       TE.map(() => {}),
     );
-  return { acquire, release };
+  return {
+    pool: { acquire, release },
+    administration: {
+      getCurrentResourceCount: () => state.resources.length,
+      getMinCount: () => state.minCount,
+      getMaxCount: () => state.maxCount,
+      getDefaultResourceIdleTime: () => state.idleTimeBeforeEvict,
+      runEviction: (resourceIdleTime) =>
+        T.of({ resourcesDeleted: 0, errors: [] }),
+    },
+  };
 };
 
 const defaultOptions = {
@@ -176,6 +173,9 @@ const defaultOptions = {
 
 interface ResourcePoolState<T> {
   resources: Array<Resource<T> | undefined>;
+  minCount: number;
+  maxCount: number | undefined;
+  idleTimeBeforeEvict: number; // Milliseconds
 }
 
 class Resource<T> {
@@ -189,14 +189,3 @@ type InternalResourcePoolOptions<T> = typeof defaultOptions &
   ResourcePoolOptions<T>;
 const isRoomForResource = (maxCount: number | undefined, arrayLength: number) =>
   maxCount === undefined || arrayLength < maxCount;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asyncSideEffectIgnoreErrors = <TArgs extends Array<any>>(
-  sideEffect: ((...args: TArgs) => Promise<void>) | undefined,
-  ...args: TArgs
-) =>
-  F.pipe(
-    TE.tryCatch(async () => await sideEffect?.(...args), E.toError),
-    TE.toUnion,
-    T.map(() => E.of<Error, TArgs>(args)),
-  );
