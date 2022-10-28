@@ -28,6 +28,12 @@ declare namespace api {
       responseBody: data.things.Thing;
     }
 
+    export interface Undelete extends common.AuthenticatedEndpoint {
+      method: "POST";
+      url: data.things.ThingID;
+      responseBody: data.things.Thing;
+    }
+
     // Get multiple things
     export interface ReadAll extends common.AuthenticatedEndpoint {
       method: "GET";

@@ -31,4 +31,7 @@ export type TMetadataProviders = {
   >;
 };
 
-export type TFunctionalityBase = services.Service<any, any>;
+export type TFunctionalityBase<TParams = any, TReturn = any> = services.Service<
+  TParams,
+  TReturn
+>;

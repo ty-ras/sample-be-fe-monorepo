@@ -43,7 +43,7 @@ export interface SpecCreator<
     functionality: TFunctionality,
     stateSpec: TStateSpec,
     apiSpec: Omit<
-      types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>,
+      ReturnType<types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>>,
       "endpointHandler" | "output" | "state"
     >,
     extractArgs: (

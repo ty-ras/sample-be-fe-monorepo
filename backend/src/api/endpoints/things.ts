@@ -2,6 +2,8 @@ import * as protocol from "../../protocol";
 import * as aux from "../auxiliary";
 import * as services from "../../services";
 import * as data from "@ty-ras/data-backend-io-ts";
+import * as dataGeneric from "@ty-ras/data-io-ts";
+import type * as protocolTyras from "@ty-ras/protocol";
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 
@@ -44,11 +46,14 @@ const thingObject = t.type({
   created_at: tt.DateFromISOString,
   updated_at: tt.DateFromISOString,
 });
-const exampleThing: t.TypeOf<typeof thingObject> = {
+const exampleThing: protocolTyras.EncodedOf<
+  dataGeneric.HKTEncoded,
+  protocol.data.things.Thing
+> = {
   id: "Dummy ID",
   payload: "Dummy payload",
-  created_at: new Date(0),
-  updated_at: new Date(0),
+  created_at: "",
+  updated_at: "",
   created_by: "User",
   updated_by: "User",
 };
@@ -169,6 +174,22 @@ const deleteThing = aux
               description: "The ID of the thing to delete",
             },
           },
+        },
+      },
+    },
+    ({ state: { username }, url }) => ({ username, thing: url }),
+  );
+
+const undeleteThing = aux
+  .withResponseBody<protocol.api.things.Undelete>(thingObject)
+  .createEndpoint(
+    services.undeleteThing,
+    aux.authenticatedStateSpec,
+    {
+      method: "POST",
+      mdArgs: {
+        openapi: {
+          ...aux.mdArgsBase(),
         },
       },
     },

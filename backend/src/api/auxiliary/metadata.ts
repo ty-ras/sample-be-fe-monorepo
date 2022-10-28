@@ -7,7 +7,11 @@ export const mdArgsBase = <TOutput>(
   output: { description: string; example: TOutput },
   operation: openapi.OpenAPIArgumentsStatic["operation"],
 ): ReturnType<
-  types.EndpointSpec<protocol.ProtocolSpecCore<string, any>, any, any>
+  types.EndpointSpec<
+    protocol.ProtocolSpecCore<string, any>,
+    types.TFunctionalityBase<any, TOutput>,
+    any
+  >
 >["mdArgs"]["openapi"] => ({
   urlParameters: undefined,
   queryParameters: undefined,

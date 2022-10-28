@@ -52,78 +52,87 @@ const thingColumnListString = internal.rawSQL(
 );
 
 // CRUD
-export const createThing = internal
-  .createSimpleDBService(
-    internal.withSQL`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${"id"}, gen_random_uuid()), ${"payload"}, ${"username"}) RETURNING ${thingColumnListString}`.validateRow(
-      thingValidation,
-    ),
-  )
-  .createFlow<CreateThingInput>(({ username, thing: { id, payload } }) => ({
+export const createThing = F.pipe(
+  ({ username, thing: { id, payload } }: CreateThingInput) => ({
     username,
     id,
     payload,
-  }));
+  }),
+  internal.executeSQL`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${"id"}, gen_random_uuid()), ${"payload"}, ${"username"}) RETURNING ${thingColumnListString}`,
+  internal.singleRowQuery(thingValidation),
+  internal.toService,
+);
+export const getThing = F.pipe(
+  ({ thing }: GetThingInput) => thing,
+  internal.executeSQL`SELECT * FROM things WHERE is_deleted IS FALSE AND id = ${"id"}`,
+  internal.singleRowQuery(thingValidation),
+  internal.toService,
+);
 
-export const getThing = internal
-  .createSimpleDBService(
-    internal.withSQL`SELECT * FROM things WHERE is_deleted IS FALSE AND id = ${"id"}`.validateRow(
-      thingValidation,
-    ),
-  )
-  .createFlow<GetThingInput>(({ thing }) => thing);
-
-export const updateThing = internal
-  .createSimpleDBService(
-    internal.withSQL`UPDATE things t SET updated_by = ${"username"}, payload = CASE WHEN ${"payloadPresent"} IS TRUE THEN ${"payload"} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`.validateRow(
-      thingValidation,
-    ),
-  )
-  .createFlow<UpdateThingInput>(({ username, thing: { id, payload } }) => ({
+export const updateThing = F.pipe(
+  ({ username, thing: { id, payload } }: UpdateThingInput) => ({
     username,
     id,
     payload,
     payloadPresent: payload !== undefined,
-  }));
+  }),
+  internal.executeSQL`UPDATE things t SET updated_by = ${"username"}, payload = CASE WHEN ${"payloadPresent"} IS TRUE THEN ${"payload"} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`,
+  internal.singleRowQuery(thingValidation),
+  internal.toService,
+);
 
-export const deleteThing = internal
-  .createSimpleDBService(
-    internal.withSQL`UPDATE things SET deleted_by = ${"username"}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`.validateRow(
-      thingValidation,
-    ),
-  )
-  .createFlow<DeleteThingInput>(({ username, thing }) => ({
+export const deleteThing = F.pipe(
+  ({ username, thing }: DeleteThingInput) => ({
     username,
     ...thing,
-  }));
+  }),
+  internal.executeSQL`UPDATE things SET deleted_by = ${"username"}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`,
+  internal.singleRowQuery(thingValidation),
+  internal.toService,
+);
+
+export const undeleteThing = F.pipe(
+  ({ username, thing: { id } }: UndeleteThingInput) => ({
+    username,
+    id,
+  }),
+  internal.executeSQL`UPDATE things SET updated_by = ${"username"} WHERE is_deleted IS TRUE AND id = ${"id"} RETURNING ${thingColumnListString}`,
+  internal.singleRowQuery(thingValidation),
+  internal.toService,
+);
 
 // Getting more than one thing at a time
-export const getThings = internal
-  .createSimpleDBService(
-    internal.withSQL`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`.validateRows(
-      thingValidation,
-    ),
-  )
-  .createFlow<common.AuthenticatedInput>(({ username }) => {
+export const getThings = F.pipe(
+  ({ username }: common.AuthenticatedInput) => {
     // eslint-disable-next-line no-console
     console.info(`Things queried by "${username}".`);
-  });
+  },
+  internal.executeSQL`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`,
+  internal.multiRowQuery(thingValidation),
+  internal.toService,
+);
 
 // Things statistics
-export const getThingsCount = internal
-  .createSimpleDBService({
-    validation: t.number,
-    task: F.flow(
-      internal
-        .withSQL(
-          // Notice ::int cast - by default count is BIGINT and results in string being returned instead of number
-          // Also notice: this returns also rows marked as deleted!
-          `SELECT table_quick_count('things')::int AS estimate`,
-        )
-        .validateRow(t.type({ estimate: t.number }, "ThingsCountRow")).task,
-      TE.map(({ estimate }) => estimate),
-    ),
-  })
-  .createFlow<common.UnauthenticatedInput>(() => {});
+export const getThingsCount = F.pipe(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  (_: void): void => {},
+  // Notice ::int cast - by default count is BIGINT and results in string being returned instead of number
+  // Also notice: this returns also rows marked as deleted!
+  internal.executeSQL`SELECT table_quick_count('things')::int AS estimate`,
+  internal.singleRowQuery(t.type({ estimate: t.number })),
+  internal.transformResult(
+    TE.map(({ estimate }) => estimate),
+    // If more than one instruction needed:
+    // (task) =>
+    //   F.pipe(
+    //     task,
+    //     TE.map(({ estimate }) => estimate),
+    //     ...etc
+    //   ),
+    t.number,
+  ),
+  internal.toService,
+);
 
 // Types
 export type Thing = t.TypeOf<typeof thingValidation>;
@@ -143,3 +152,4 @@ export type UpdateThingInput = SpecificThingInput &
   // Notice that Partial<ThingPayload> does not work super-well with this example of only one payload column
   ThingInput<Partial<ThingPayload>>;
 export type DeleteThingInput = SpecificThingInput;
+export type UndeleteThingInput = SpecificThingInput;
