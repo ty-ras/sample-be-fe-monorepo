@@ -8,8 +8,10 @@ import {
   HStack,
   IconButton,
   Input,
+  SimpleGrid,
   Spinner,
   StackDivider,
+  Text,
 } from "@chakra-ui/react";
 import { AddIcon, DeleteIcon, RepeatIcon } from "@chakra-ui/icons";
 import type * as proto from "@ty-ras/protocol";
@@ -67,7 +69,7 @@ const CreateThing = () => {
             TE.tryCatch(
               async () =>
                 await backend.createThing({
-                  body: { payload: "Initial payload" },
+                  body: { payload: "" },
                 }),
               E.toError,
             ),
@@ -118,7 +120,7 @@ const RefreshThings = () => {
       colorScheme={error === undefined ? undefined : "red"}
       onClick={() => void refreshThings()}
     >
-      Refresh
+      Refresh all
     </Button>
   );
 };
@@ -128,74 +130,108 @@ const Thing = ({
 }: {
   thing: proto.RuntimeOf<protocol.data.things.Thing>;
 }) => {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
+  const [isInvalid, setIsInvalid] = useState(false);
   const removeThing = state.useState((s) => s.removeThing);
   const updateThing = state.useState((s) => s.updateThing);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isInvalid, setIsInvalid] = useState(false);
+  const idID = `t-${thing.id}-id`;
+  const payloadID = `t-${thing.id}-payload`;
   return (
     <Flex direction="row">
       <Center>
         <IconButton
-          aria-label={`Delete ${thing.id}`}
-          isDisabled={isDeleting || isUpdating}
-          icon={<DeleteIcon />}
+          aria-label={`Refresh thing ${thing.id}`}
+          icon={<RepeatIcon />}
+          isDisabled={isBusy}
           onClick={() => {
-            setIsDeleting(true);
-            void F.pipe(
-              TE.tryCatch(
-                async () =>
-                  await backend.deleteThing({ url: { id: thing.id } }),
-                E.toError,
-              ),
-              TE.toUnion,
-              T.map(() => removeThing(thing.id)),
-            )();
+            if (!isBusy) {
+              setIsBusy(true);
+              void F.pipe(
+                TE.tryCatch(
+                  async () =>
+                    await backend.readThing({ url: { id: thing.id } }),
+                  E.toError,
+                ),
+                TE.chainW((r) => TE.fromEither(toEither(r))),
+                TE.bimap(
+                  () => setIsInvalid(true),
+                  (d) => updateThing(d),
+                ),
+                T.map(() => setIsBusy(false)),
+              )();
+            }
           }}
         />
       </Center>
       <Box flex={1}>
-        <Flex direction="column">
-          <FormControl>
-            <FormLabel>ID</FormLabel>
-            <Input disabled value={thing.id} />
-          </FormControl>
-          <FormControl isInvalid={isInvalid}>
-            <FormLabel>Payload</FormLabel>
-            <Input
-              disabled={isDeleting || isUpdating}
-              defaultValue={thing.payload}
-              onBlur={(evt) => {
-                const newValue = evt.currentTarget.value;
-                if (!isDeleting && !isUpdating && newValue !== thing.payload) {
-                  setIsUpdating(true);
-                  void F.pipe(
-                    TE.tryCatch(
-                      async () =>
-                        await backend.updateThing({
-                          url: { id: thing.id },
-                          body: { payload: newValue },
-                        }),
-                      E.toError,
-                    ),
-                    TE.chainW((r) => TE.fromEither(toEither(r))),
-                    TE.bimap(
-                      () => setIsInvalid(true),
-                      (d) => updateThing(d),
-                    ),
-                    T.map(() => setIsUpdating(false)),
-                  )();
-                }
-              }}
-              onChange={() => {
-                if (isInvalid) {
-                  setIsInvalid(false);
-                }
-              }}
-            />
-          </FormControl>
-        </Flex>
+        <SimpleGrid
+          templateColumns="minmax(20px, auto) 1fr;"
+          gap="0.5em"
+          alignItems="center"
+        >
+          <Text as="label" justifySelf="end" htmlFor={idID}>
+            ID
+          </Text>
+          <Input justifySelf="start" id={idID} disabled value={thing.id} />
+          <Text as="label" justifySelf="end" htmlFor={payloadID}>
+            Payload
+          </Text>
+          <Input
+            justifySelf="start"
+            id={payloadID}
+            disabled={isBusy}
+            defaultValue={thing.payload}
+            onBlur={(evt) => {
+              const newValue = evt.currentTarget.value;
+              if (!isBusy && newValue !== thing.payload) {
+                setIsBusy(true);
+                void F.pipe(
+                  TE.tryCatch(
+                    async () =>
+                      await backend.updateThing({
+                        url: { id: thing.id },
+                        body: { payload: newValue },
+                      }),
+                    E.toError,
+                  ),
+                  TE.chainW((r) => TE.fromEither(toEither(r))),
+                  TE.bimap(
+                    () => setIsInvalid(true),
+                    (d) => updateThing(d),
+                  ),
+                  T.map(() => setIsBusy(false)),
+                )();
+              }
+            }}
+            onChange={() => {
+              if (isInvalid) {
+                setIsInvalid(false);
+              }
+            }}
+          />
+        </SimpleGrid>
       </Box>
+      <Center>
+        <IconButton
+          aria-label={`Delete ${thing.id}`}
+          isDisabled={isBusy}
+          icon={<DeleteIcon />}
+          onClick={() => {
+            if (!isBusy) {
+              setIsBusy(true);
+              void F.pipe(
+                TE.tryCatch(
+                  async () =>
+                    await backend.deleteThing({ url: { id: thing.id } }),
+                  E.toError,
+                ),
+                TE.toUnion,
+                T.map(() => removeThing(thing.id)),
+              )();
+            }
+          }}
+        />
+      </Center>
     </Flex>
   );
 };

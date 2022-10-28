@@ -10,7 +10,11 @@ export const createThingsEndpoints = (
   dbPool: services.DBPool,
 ) => [
   builder.atURL`/${"id"}`
-    .validateURLData(data.url({ id: thingObject.props.id }))
+    .validateURLData(
+      data.url({
+        id: { decoder: thingObject.props.id, regExp: services.thingIDRegex },
+      }),
+    )
     .batchSpec(readThing(dbPool))
     .batchSpec(updateThing(dbPool))
     .batchSpec(deleteThing(dbPool))

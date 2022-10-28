@@ -119,3 +119,29 @@ BEGIN
 END;
 $$
 ;
+
+-- Notice that SELECT COUNT(*) is expensive operation in Postgres, as it tries to retrieve *exact* count of rows.
+-- But if we are not really interested in that - so just pass estimate
+-- More info: https://stackoverflow.com/questions/7943233/fast-way-to-discover-the-row-count-of-a-table-in-postgresql
+-- Notice that estimation will be 0 on small row counts -> fallback to COUNT(*) then, as table size won't be a problem in that case
+-- Notice that this generic version does one extra query to retrieve table name.
+CREATE FUNCTION table_quick_count(
+  table_id REGCLASS
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+STRICT
+AS
+$$
+DECLARE
+  table_name TEXT;
+  seen_row_count BIGINT;
+BEGIN
+  SELECT relname INTO STRICT table_name FROM pg_class WHERE oid = table_id;
+  EXECUTE format('SELECT 100 * COUNT(*) FROM %I TABLESAMPLE SYSTEM (1)', table_name) INTO STRICT seen_row_count;
+  IF seen_row_count = 0 THEN
+    EXECUTE format('SELECT COUNT(*) FROM %I', table_name) INTO STRICT seen_row_count;
+  END IF;
+  RETURN seen_row_count;
+END
+$$;

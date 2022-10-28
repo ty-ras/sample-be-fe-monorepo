@@ -91,8 +91,15 @@ const createBackend = () => {
     ),
     response: data.plainValidator(datas.thing),
   });
+  const readThing = factory.makeAPICall<protocol.api.things.Read>("GET", {
+    ...authParams,
+    method: data.plainValidator(t.literal("GET")),
+    url: thingSpecificURL,
+    response: data.plainValidator(datas.thing),
+  });
   return {
     createThing,
+    readThing,
     updateThing,
     deleteThing,
     getThings,

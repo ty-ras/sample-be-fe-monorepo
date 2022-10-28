@@ -23,7 +23,6 @@ interface User {
   refreshToken: string;
 
   // Internal stuff
-  // I wanted to use undefined | Promise<string | undefined>, however, that seems to cause typing errors.
   _internalTokenRefreshPromise: undefined | Promise<string | undefined>;
 }
 

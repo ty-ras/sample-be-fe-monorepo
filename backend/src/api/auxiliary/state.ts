@@ -57,8 +57,8 @@ export const endpointState = <TStateSpec extends object>(
         // Perform transformation in case of both success and error
         E.bimap(
           // On error, check if error is about any property name related to authentication state
-          (errors) =>
-            errors.some((error) =>
+          (errors) => {
+            return errors.some((error) =>
               error.context.some(
                 ({ key }) => key in authenticationStateValidator.props,
               ),
@@ -70,7 +70,8 @@ export const endpointState = <TStateSpec extends object>(
                   body: undefined,
                 }
               : // This was other error - perhaps DB pool creation failed? Will return 500
-                data.createErrorObject(errors),
+                data.createErrorObject(errors);
+          },
           // In case of success, transform it into
           (result) => ({
             error: "none" as const,

@@ -10,11 +10,28 @@ const nonEmptyString = t.refinement(
   (s) => s.length > 0,
   "NonEmptyString",
 );
+// This is RFC-adhering UUID regex. Relax if needed.
+// Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
+export const thingIDRegex =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
+
+// TODO once this is in use throughout BE, check if using branded type causes compilation errors.
+// const idInBody = t.brand(
+//   t.string,
+//   (str): str is t.Branded<string, { readonly ID: unique symbol }> =>
+//     idRegex.test(str),
+//   "ID",
+// );
+export const thingID = t.refinement(
+  t.string,
+  (str) => thingIDRegex.test(str),
+  "ThingID",
+);
 // We could also use 'exact' here and just use 'RETURNING *' in SQLs.
 // However, that would be just excess traffic between BE and DB, and also would cause construction of new object on every row.
 // Therefore, we use vasic 'type' validation + construct the correct column list to use it in queries
 export const thingValidation = t.type({
-  id: t.string, // TODO UUID string
+  id: thingID,
   payload: t.string,
   created_at: data.instanceOf(Date, "Date"),
   updated_at: data.instanceOf(Date, "Date"),
@@ -99,10 +116,11 @@ export const getThingsCount = internal
       internal
         .withSQL(
           // Notice ::int cast - by default count is BIGINT and results in string being returned instead of number
-          "SELECT COUNT(*)::int AS total FROM things",
+          // Also notice: this returns also rows marked as deleted!
+          `SELECT things_quick_count()::int AS estimate`,
         )
-        .validateRow(t.type({ total: t.number }, "ThingsCountRow")).task,
-      TE.map(({ total }) => total),
+        .validateRow(t.type({ estimate: t.number }, "ThingsCountRow")).task,
+      TE.map(({ estimate }) => estimate),
     ),
   })
   .createFlow<common.UnauthenticatedInput>(() => {});
