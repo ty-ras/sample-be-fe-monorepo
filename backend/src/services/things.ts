@@ -117,7 +117,7 @@ export const getThingsCount = internal
         .withSQL(
           // Notice ::int cast - by default count is BIGINT and results in string being returned instead of number
           // Also notice: this returns also rows marked as deleted!
-          `SELECT things_quick_count()::int AS estimate`,
+          `SELECT table_quick_count('things')::int AS estimate`,
         )
         .validateRow(t.type({ estimate: t.number }, "ThingsCountRow")).task,
       TE.map(({ estimate }) => estimate),

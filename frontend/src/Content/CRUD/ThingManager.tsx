@@ -3,17 +3,19 @@ import {
   Button,
   Center,
   Flex,
-  FormControl,
-  FormLabel,
   HStack,
   IconButton,
   Input,
+  InputGroup,
+  InputRightElement,
   SimpleGrid,
   Spinner,
   StackDivider,
   Text,
+  Tooltip,
+  useClipboard,
 } from "@chakra-ui/react";
-import { AddIcon, DeleteIcon, RepeatIcon } from "@chakra-ui/icons";
+import { AddIcon, CopyIcon, DeleteIcon, RepeatIcon } from "@chakra-ui/icons";
 import type * as proto from "@ty-ras/protocol";
 import backend, {
   toEither,
@@ -116,7 +118,7 @@ const RefreshThings = () => {
       rightIcon={<RepeatIcon />}
       aria-label="Refresh things from backend"
       isLoading={isFetching}
-      loadingText={"Creating..."}
+      loadingText={"Refreshing..."}
       colorScheme={error === undefined ? undefined : "red"}
       onClick={() => void refreshThings()}
     >
@@ -134,8 +136,6 @@ const Thing = ({
   const [isInvalid, setIsInvalid] = useState(false);
   const removeThing = state.useState((s) => s.removeThing);
   const updateThing = state.useState((s) => s.updateThing);
-  const idID = `t-${thing.id}-id`;
-  const payloadID = `t-${thing.id}-payload`;
   return (
     <Flex direction="row">
       <Center>
@@ -169,44 +169,44 @@ const Thing = ({
           gap="0.5em"
           alignItems="center"
         >
-          <Text as="label" justifySelf="end" htmlFor={idID}>
-            ID
-          </Text>
-          <Input justifySelf="start" id={idID} disabled value={thing.id} />
-          <Text as="label" justifySelf="end" htmlFor={payloadID}>
-            Payload
-          </Text>
-          <Input
-            justifySelf="start"
-            id={payloadID}
-            disabled={isBusy}
-            defaultValue={thing.payload}
-            onBlur={(evt) => {
-              const newValue = evt.currentTarget.value;
-              if (!isBusy && newValue !== thing.payload) {
-                setIsBusy(true);
-                void F.pipe(
-                  TE.tryCatch(
-                    async () =>
-                      await backend.updateThing({
-                        url: { id: thing.id },
-                        body: { payload: newValue },
-                      }),
-                    E.toError,
-                  ),
-                  TE.chainW((r) => TE.fromEither(toEither(r))),
-                  TE.bimap(
-                    () => setIsInvalid(true),
-                    (d) => updateThing(d),
-                  ),
-                  T.map(() => setIsBusy(false)),
-                )();
-              }
-            }}
-            onChange={() => {
-              if (isInvalid) {
-                setIsInvalid(false);
-              }
+          <PropertyEditor
+            name="ID"
+            value={thing.id}
+            id={`t-${thing.id}-id`}
+            isDisabled
+          />
+          <PropertyEditor
+            name="Payload"
+            value={thing.payload}
+            id={`t-${thing.id}-payload`}
+            isDisabled={isBusy}
+            mutableValueInfo={{
+              onValueChange: () => {
+                if (isInvalid) {
+                  setIsInvalid(false);
+                }
+              },
+              onValueChangeSubmit: (newValue) => {
+                if (!isBusy) {
+                  setIsBusy(true);
+                  return F.pipe(
+                    TE.tryCatch(
+                      async () =>
+                        await backend.updateThing({
+                          url: { id: thing.id },
+                          body: { payload: newValue },
+                        }),
+                      E.toError,
+                    ),
+                    TE.chainW((r) => TE.fromEither(toEither(r))),
+                    TE.bimap(
+                      () => setIsInvalid(true),
+                      (d) => updateThing(d),
+                    ),
+                    T.map(() => setIsBusy(false)),
+                  );
+                }
+              },
             }}
           />
         </SimpleGrid>
@@ -233,6 +233,100 @@ const Thing = ({
         />
       </Center>
     </Flex>
+  );
+};
+
+const PropertyEditor = ({
+  mutableValueInfo,
+  ...props
+}: {
+  name: string;
+  id: string;
+  isDisabled: boolean;
+  value: string;
+  mutableValueInfo?: {
+    onValueChangeSubmit: (newValue: string) => T.Task<unknown> | undefined;
+    onValueChange: () => void;
+  };
+}) => {
+  const [hasUpdated, setHasUpdated] = useState(false);
+  const timeout = 1000;
+  useEffect(() => {
+    let timeoutId: number | undefined;
+    if (hasUpdated) {
+      timeoutId = window.setTimeout(() => {
+        setHasUpdated(false);
+      }, timeout);
+    }
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [timeout, hasUpdated]);
+  const { hasCopied, onCopy } = useClipboard(props.value);
+  return (
+    <>
+      <Text as="label" justifySelf="end" htmlFor={props.id}>
+        {props.name}
+      </Text>
+      <Tooltip
+        isOpen={hasUpdated}
+        label={"Value saved!"}
+        placement="top"
+        defaultIsOpen={false}
+      >
+        <InputGroup size="md" justifySelf="start">
+          <Input
+            disabled={!mutableValueInfo || props.isDisabled}
+            id={props.id}
+            pr="4.5rem"
+            defaultValue={props.value}
+            onChange={
+              mutableValueInfo
+                ? () => mutableValueInfo.onValueChange()
+                : undefined
+            }
+            onBlur={
+              mutableValueInfo
+                ? (evt) => {
+                    const newValue = evt.currentTarget.value;
+                    if (newValue != props.value) {
+                      const maybeTask =
+                        mutableValueInfo.onValueChangeSubmit(newValue);
+                      if (maybeTask) {
+                        void F.pipe(
+                          maybeTask,
+                          T.map(() => {
+                            setHasUpdated(true);
+                          }),
+                        )();
+                      }
+                    }
+                  }
+                : undefined
+            }
+            placeholder={mutableValueInfo ? props.name : undefined}
+          />
+          <InputRightElement width="4.5rem">
+            <Tooltip
+              label={hasCopied ? "Copied!" : "Copy to clipboard"}
+              placement="right"
+              closeOnClick={false}
+              defaultIsOpen={false}
+            >
+              <IconButton
+                h="1.75rem"
+                size="sm"
+                aria-label={`Copy value for "${props.name}".`}
+                icon={<CopyIcon />}
+                onClick={onCopy}
+              />
+            </Tooltip>
+          </InputRightElement>
+        </InputGroup>
+      </Tooltip>
+    </>
   );
 };
 
