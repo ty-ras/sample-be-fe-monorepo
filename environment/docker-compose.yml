@@ -67,7 +67,7 @@ services:
       args:
         NODE_VERSION: ${TYRAS_NODE_VERSION_FE}
     ports:
-      - 127.0.0.1:4002:5173
+      - 127.0.0.1:4002:4002
     volumes:
       - "${TYRAS_ROOT_DIR}/frontend/:/tyras/code/:rw"
       - "${TYRAS_ROOT_DIR}/protocol/:/tyras/protocol/:ro"
@@ -100,7 +100,7 @@ services:
         # Vite can't handle multi-string env vars yet, but perhaps in Vite4: https://github.com/vitejs/vite/pull/6783
         # So use jq to compact readable multi-line JSON string into one-liner
         echo 'VITE_TYRAS_FE_CONFIG='"$$(echo "$${TYRAS_FE_CONFIG}" | jq -cM .)" > .env
-        yarn run dev --host 0.0.0.0
+        yarn run dev --host 0.0.0.0 --port 4002
   user-auth:
     image: jagregory/cognito-local:3.21.1
     environment:
