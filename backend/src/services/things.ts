@@ -120,6 +120,7 @@ export const getThingsCount = F.pipe(
   // Also notice: this returns also rows marked as deleted!
   internal.executeSQL`SELECT table_quick_count('things')::int AS estimate`,
   internal.singleRowQuery(t.type({ estimate: t.number })),
+  internal.usingConnectionPool,
   internal.transformResult(
     TE.map(({ estimate }) => estimate),
     // If more than one instruction needed:
@@ -131,7 +132,6 @@ export const getThingsCount = F.pipe(
     //   ),
     t.number,
   ),
-  internal.usingConnectionPool,
 );
 
 // Types

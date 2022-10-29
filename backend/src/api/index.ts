@@ -1,7 +1,6 @@
 import * as prefix from "@ty-ras/endpoint-prefix";
 import * as aux from "./auxiliary";
 import * as endpoints from "./endpoints";
-import type * as services from "../services";
 
 export {
   State,

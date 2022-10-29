@@ -124,33 +124,6 @@ export type CreateDBQueryTask<TQueryParameters, TValidation extends t.Mixed> = (
   parameters: TQueryParameters,
 ) => TE.TaskEither<Error, t.TypeOf<TValidation>>;
 
-export const transformResult =
-  <
-    TQueryParameters,
-    TQueryValidation extends t.Mixed,
-    TTransformValidation extends t.Mixed,
-  >(
-    transformTask: (
-      task: TE.TaskEither<Error, t.TypeOf<TQueryValidation>>,
-    ) => TE.TaskEither<Error, t.TypeOf<TTransformValidation>>,
-    validation: TTransformValidation,
-  ): (<TFunctionParameters>(
-    q: QueryWithValidatedRows<
-      TFunctionParameters,
-      TQueryParameters,
-      TQueryValidation
-    >,
-  ) => QueryWithValidatedRows<
-    TFunctionParameters,
-    TQueryParameters,
-    TTransformValidation
-  >) =>
-  ({ transform, createTask }) => ({
-    transform,
-    validation,
-    createTask: F.flow(createTask, transformTask),
-  });
-
 export const usingConnectionPool = <
   TFunctionParameters,
   TQueryParameters,
@@ -169,6 +142,20 @@ export const usingConnectionPool = <
     TE.bracket(acquire(), (db) => createTask(db, transform(args)), release),
   ),
 });
+
+export const transformResult =
+  <TResult, TTransformValidation extends t.Mixed>(
+    transformTask: (
+      task: TE.TaskEither<Error, TResult>,
+    ) => TE.TaskEither<Error, t.TypeOf<TTransformValidation>>,
+    validation: TTransformValidation,
+  ): (<TFunctionParameters>(
+    service: common.Service<TFunctionParameters, TResult>,
+  ) => common.Service<TFunctionParameters, t.TypeOf<TTransformValidation>>) =>
+  ({ createTask }) => ({
+    createTask: F.flow(createTask, transformTask),
+    validation,
+  });
 
 const _createTask = <TQueryParameters, TValidation extends t.Mixed>(
   queryString: string,
