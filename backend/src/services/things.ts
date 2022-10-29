@@ -109,6 +109,13 @@ export const getThings = F.pipe(
   },
   internal.executeSQL`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`,
   internal.multiRowQuery(thingValidation),
+  // internal.queryFurther(
+  //   F.pipe(
+  //     (things: Array<t.TypeOf<typeof thingValidation>>) => ({ param: things }),
+  //     internal.executeSQL`SELECT something ${"param"}`,
+  //     internal.multiRowQuery(t.number),
+  //   ),
+  // ),
   internal.usingConnectionPool,
 );
 

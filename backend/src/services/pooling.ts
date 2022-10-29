@@ -1,3 +1,4 @@
+// TODO move to some generic implementation place (@ty-ras/data-io-ts perhaps).
 import {
   function as F,
   option as O,

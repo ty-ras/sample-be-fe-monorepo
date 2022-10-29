@@ -71,20 +71,20 @@ export const multiRowQuery = <T extends t.Mixed>(
   singleRowValidation: T,
 ): (<TFunctionParameters, TQueryParameters>(
   queryAndTransform: QueryAndTransform<TFunctionParameters, TQueryParameters>,
-) => QueryWithValidatedRows<
-  TFunctionParameters,
-  TQueryParameters,
-  t.ArrayC<T>
->) => {
+) => QueryWithValidatedRows<TFunctionParameters, t.ArrayC<T>>) => {
   const validation = t.array(singleRowValidation);
   return <TFunctionParameters, TQueryParameters>({
     transform,
     queryString,
     queryParameterNames,
   }: QueryAndTransform<TFunctionParameters, TQueryParameters>) => ({
-    transform,
     validation,
-    createTask: _createTask(queryString, queryParameterNames, validation),
+    createTask: _createTask(
+      transform,
+      queryString,
+      queryParameterNames,
+      validation,
+    ),
   });
 };
 
@@ -94,7 +94,6 @@ export const singleRowQuery = <T extends t.Mixed>(
   queryAndTransform: QueryAndTransform<TFunctionParameters, TQueryParameters>,
 ) => QueryWithValidatedRows<
   TFunctionParameters,
-  TQueryParameters,
   t.Type<t.TypeOf<T>, Array<t.OutputOf<T>>, unknown>
 >) => {
   const validation = arrayOfOneElement(singleRowValidation);
@@ -103,45 +102,54 @@ export const singleRowQuery = <T extends t.Mixed>(
     queryString,
     queryParameterNames,
   }: QueryAndTransform<TFunctionParameters, TQueryParameters>) => ({
-    transform,
     validation,
-    createTask: _createTask(queryString, queryParameterNames, validation),
+    createTask: _createTask(
+      transform,
+      queryString,
+      queryParameterNames,
+      validation,
+    ),
   });
 };
 
 export interface QueryWithValidatedRows<
   TFunctionParameters,
-  TQueryParameters,
   TValidation extends t.Mixed,
 > {
-  transform: ParameterTransform<TFunctionParameters, TQueryParameters>;
   validation: TValidation;
-  createTask: CreateDBQueryTask<TQueryParameters, TValidation>;
+  createTask: CreateDBQueryTask<TFunctionParameters, TValidation>;
 }
 
-export type CreateDBQueryTask<TQueryParameters, TValidation extends t.Mixed> = (
+export type CreateDBQueryTask<TParameters, TValidation extends t.Mixed> = (
   db: db.Client,
-  parameters: TQueryParameters,
+  parameters: TParameters,
 ) => TE.TaskEither<Error, t.TypeOf<TValidation>>;
 
-export const usingConnectionPool = <
-  TFunctionParameters,
-  TQueryParameters,
-  TValidation extends t.Mixed,
->({
-  validation,
-  transform,
-  createTask,
-}: QueryWithValidatedRows<
-  TFunctionParameters,
-  TQueryParameters,
-  TValidation
->): common.Service<TFunctionParameters, t.TypeOf<TValidation>> => ({
-  validation,
-  createTask: F.flow(({ acquire, release }, args) =>
-    TE.bracket(acquire(), (db) => createTask(db, transform(args)), release),
-  ),
-});
+export const queryFurther =
+  <TQueryValidation extends t.Mixed, TTransformValidation extends t.Mixed>(
+    queryInfo: QueryWithValidatedRows<
+      t.TypeOf<TQueryValidation>,
+      TTransformValidation
+    >,
+  ): (<TFunctionParameters>(
+    q: QueryWithValidatedRows<TFunctionParameters, TQueryValidation>,
+  ) => QueryWithValidatedRows<TFunctionParameters, TTransformValidation>) =>
+  ({ createTask }) => ({
+    validation: queryInfo.validation,
+    createTask: F.flow(
+      (db, args) =>
+        TE.of<Error, { db: typeof db; args: typeof args }>({ db, args }),
+      TE.chain((dbAndArgs) =>
+        F.pipe(
+          createTask(dbAndArgs.db, dbAndArgs.args),
+          TE.map((result) => ({ db: dbAndArgs.db, result })),
+          TE.chain((dbAndResult) =>
+            queryInfo.createTask(dbAndResult.db, dbAndResult.result),
+          ),
+        ),
+      ),
+    ),
+  });
 
 export const transformResult =
   <TResult, TTransformValidation extends t.Mixed>(
@@ -157,22 +165,45 @@ export const transformResult =
     validation,
   });
 
-const _createTask = <TQueryParameters, TValidation extends t.Mixed>(
+export const usingConnectionPool = <
+  TFunctionParameters,
+  TValidation extends t.Mixed,
+>({
+  validation,
+  createTask,
+}: QueryWithValidatedRows<TFunctionParameters, TValidation>): common.Service<
+  TFunctionParameters,
+  t.TypeOf<TValidation>
+> => ({
+  validation,
+  createTask: F.flow(({ acquire, release }, args) =>
+    TE.bracket(acquire(), (db) => createTask(db, args), release),
+  ),
+});
+
+const _createTask = <
+  TFunctionParameters,
+  TQueryParameters,
+  TValidation extends t.Mixed,
+>(
+  transform: ParameterTransform<TFunctionParameters, TQueryParameters>,
   queryString: string,
   queryParameterNames: ReadonlyArray<keyof TQueryParameters>,
   validation: TValidation,
-): CreateDBQueryTask<TQueryParameters, TValidation> =>
+): CreateDBQueryTask<TFunctionParameters, TValidation> =>
   queryParameterNames.length > 0
     ? F.flow(
-        (db, parameters) =>
-          TE.tryCatch(
+        (db, parameters) => {
+          const qParameters = transform(parameters);
+          return TE.tryCatch(
             async () =>
               await db.query(
                 queryString,
-                queryParameterNames.map((paramName) => parameters[paramName]),
+                queryParameterNames.map((paramName) => qParameters[paramName]),
               ),
             E.toError,
-          ),
+          );
+        },
         TE.chainW(({ rows }) => TE.fromEither(validation.decode(rows))),
         TE.mapLeft(common.getErrorObject),
       )
