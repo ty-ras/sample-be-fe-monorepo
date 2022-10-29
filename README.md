@@ -2,7 +2,7 @@
 
 [![CI Pipeline](https://github.com/ty-ras/sample-be-fe-monorepo/actions/workflows/ci.yml/badge.svg)](https://github.com/ty-ras/sample-be-fe-monorepo/actions/workflows/ci.yml)
 
-![Animation of Frontend Usage](https://raw.githubusercontent.com/ty-ras/sample-be-fe-monorepo/issue/2-add-crud/doc/fe-usage.gif)
+![Animation of Frontend Usage](https://raw.githubusercontent.com/ty-ras/sample-be-fe-monorepo/main/doc/fe-usage.gif)
 
 The Typesafe REST API Specification (TyRAS) is a family of libraries used to enable seamless development of Backend and/or Frontend which communicate via HTTP protocol.
 The protocol specification is checked both at compile-time and run-time to verify that communication indeed adhers to the protocol.
