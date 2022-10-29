@@ -79,6 +79,15 @@ const createBackend = () => {
       response: data.plainValidator(datas.thing),
     },
   );
+  const restoreThing = factory.makeAPICall<protocol.api.things.Undelete>(
+    "POST",
+    {
+      ...authParams,
+      method: data.plainValidator(t.literal("POST")),
+      url: thingSpecificURL,
+      response: data.plainValidator(datas.thing),
+    },
+  );
   const updateThing = factory.makeAPICall<protocol.api.things.Update>("PATCH", {
     ...authParams,
     method: data.plainValidator(t.literal("PATCH")),
@@ -102,6 +111,7 @@ const createBackend = () => {
     readThing,
     updateThing,
     deleteThing,
+    restoreThing,
     getThings,
     getThingsStats,
   };

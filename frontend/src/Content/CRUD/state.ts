@@ -4,89 +4,113 @@ import type * as protocol from "../../protocol";
 import type * as dataProtocol from "@ty-ras/protocol";
 
 export const useState = create<ThingsState>((set, get) => ({
-  things: undefined,
-  addThing: (thing) =>
+  thingsByID: undefined,
+  addThing: (thing) => {
+    const thingsByID = get().thingsByID;
+    const existingThing = thingsByID?.[thing.id];
+    const added = !existingThing;
+    if (added) {
+      set(
+        produce<ThingsState>((draft) => {
+          const draftThings = draft.thingsByID ?? {};
+          draftThings[thing.id] = thing;
+          draft.thingsByID = draftThings;
+        }),
+      );
+    }
+    return added;
+  },
+  removeThing: (thing) => {
+    const thingsByID = get().thingsByID;
+    const existingThing = thingsByID?.[thing.id];
+    const removed =
+      !!existingThing && existingThing.updated_at <= thing.updated_at;
+    if (removed) {
+      set(
+        produce<ThingsState>(({ thingsByID }) => {
+          if (thingsByID) {
+            delete thingsByID[thing.id];
+          }
+        }),
+      );
+    }
+    return removed;
+  },
+  updateThing: (thing) => {
+    const thingsByID = get().thingsByID;
+    const existingThing = thingsByID?.[thing.id];
+    const updated =
+      !!existingThing && existingThing.updated_at <= thing.updated_at;
+    if (updated) {
+      set(
+        produce<ThingsState>(({ thingsByID }) => {
+          if (thingsByID) {
+            thingsByID[thing.id] = thing;
+          }
+        }),
+      );
+    }
+    return updated;
+  },
+  resetThings: (things) => {
+    const newThingsByID = Object.fromEntries(
+      things.map((thing) => [thing.id, thing] as const),
+    );
     set(
       produce<ThingsState>((draft) => {
-        draft.things?.push(thing);
-      }),
-    ),
-  removeThing: (id) =>
-    set(
-      produce<ThingsState>(({ things }) => {
-        if (things) {
-          const idx = things.findIndex((thing) => thing.id === id);
-          if (idx >= 0) {
-            things.splice(idx, 1);
-          }
+        const thingsByID = draft.thingsByID;
+        if (thingsByID) {
+          resetByIDDictionary(
+            newThingsByID,
+            thingsByID,
+            (thing) => thing.updated_at,
+          );
+        } else {
+          draft.thingsByID = newThingsByID;
         }
       }),
-    ),
-  updateThing: (newThing) =>
-    set(
-      produce<ThingsState>(({ things }) => {
-        if (things) {
-          const idx = things.findIndex((thing) => thing.id === newThing.id);
-          if (idx >= 0) {
-            things[idx] = newThing;
-          }
-        }
-      }),
-    ),
-  resetThings: (things) => {
-    const currentThings = get().things;
-    set({
-      things:
-        currentThings === undefined
-          ? things
-          : appendNewElements(currentThings, things, (t) => t.id),
-    });
+    );
   },
 }));
 
 export interface ThingsState {
-  // Mutable properties
-  things: ReadonlyArray<Readonly<Thing>> | undefined;
+  // properties
+  thingsByID: Readonly<Record<string, Thing>> | undefined;
 
   // Immutable actions
-  addThing: (thing: Thing) => void;
-  removeThing: (id: string) => void;
-  updateThing: (newThing: Thing) => void;
+  addThing: (thing: Thing) => boolean;
+  removeThing: (thing: Thing) => boolean;
+  updateThing: (newThing: Thing) => boolean;
   resetThings: (things: ReadonlyArray<Readonly<Thing>>) => void;
 }
 
 export type Thing = dataProtocol.RuntimeOf<protocol.data.things.Thing>;
 
-/**
- * This function performs a least-modifying merge for two arrays of items which have some ID.
- * Neither of the arrays are modified, but instead a new array is returned.
- *
- * The order of the returned array is such that all non-removed elements are in same order as in `currentItems`.
- *
- * @param currentItems The pre-existing items.
- * @param seenItems The newly seen items.
- * @param getID The callback to get ID from item.
- */
-const appendNewElements = <T>(
-  currentItems: ReadonlyArray<T>,
-  seenItems: ReadonlyArray<T>,
-  getID: (item: T) => string,
+const resetByIDDictionary = <T>(
+  newItems: Record<string, T>,
+  currentItems: Record<string, T>,
+  getUpdatedAt: (item: T) => Date,
 ) => {
-  const dict = Object.fromEntries(
-    seenItems.map((item) => [getID(item), item] as const),
-  );
-  let idx = 0;
-  const newItems: Array<T> = [];
-  while (idx < currentItems.length) {
-    const currentItem = currentItems[idx];
-    const id = getID(currentItem);
-    if (id in dict) {
-      delete dict[id];
-      newItems.push(currentItem);
+  // Update existing, remove deleted
+  for (const [id, thing] of Object.entries(currentItems)) {
+    const newThing = newItems[id];
+    if (newThing) {
+      if (getUpdatedAt(newThing) > getUpdatedAt(thing)) {
+        currentItems[id] = newThing;
+      }
+      delete newItems[id];
     } else {
-      ++idx;
+      delete currentItems[id];
     }
   }
-  newItems.push(...Object.values(dict));
-  return newItems;
+  // Add new
+  for (const [id, newThing] of Object.entries(newItems)) {
+    currentItems[id] = newThing;
+  }
+};
+
+export const getSortedThings = (thingsByID: Record<string, Thing>) => {
+  const values = Object.values(thingsByID);
+  values.sort((x, y) => y.updated_at.valueOf() - x.updated_at.valueOf());
+  return values;
 };

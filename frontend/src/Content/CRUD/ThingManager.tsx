@@ -1,33 +1,48 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import {
   Box,
   Button,
   Center,
   Flex,
+  FormControl,
   HStack,
   IconButton,
   Input,
   InputGroup,
   InputRightElement,
+  Popover,
+  PopoverArrow,
+  PopoverCloseButton,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTrigger,
+  Portal,
   SimpleGrid,
   Spinner,
+  Stack,
   StackDivider,
   Text,
   Tooltip,
   useClipboard,
 } from "@chakra-ui/react";
-import { AddIcon, CopyIcon, DeleteIcon, RepeatIcon } from "@chakra-ui/icons";
+import {
+  AddIcon,
+  CopyIcon,
+  DeleteIcon,
+  RepeatClockIcon,
+  RepeatIcon,
+} from "@chakra-ui/icons";
 import type * as proto from "@ty-ras/protocol";
-import backend, {
-  toEither,
-  NativeOrAPICallError,
-} from "../../services/backend";
-import { useCallback, useEffect, useState } from "react";
+import backend, { toEither } from "../../services/backend";
+import { useEffect, useRef, useState } from "react";
+import FocusLock from "react-focus-lock";
 import type * as protocol from "../../protocol";
 import { function as F, task as T, either as E, taskEither as TE } from "fp-ts";
 import * as state from "./state";
+import * as task from "./asyncFailableTask";
 
 const ThingManager = () => {
-  const things = state.useState((s) => s.things);
+  const things = state.useState((s) => s.thingsByID);
   return (
     <Box>
       <Flex direction="column">
@@ -35,13 +50,14 @@ const ThingManager = () => {
           <HStack divider={<StackDivider />}>
             <CreateThing />
             <RefreshThings />
+            <RestoreThing />
           </HStack>
         </Center>
         {things === undefined ? (
           <Spinner />
         ) : (
           <Flex direction="column">
-            {things.map((thing) => (
+            {state.getSortedThings(things).map((thing) => (
               <Thing key={thing.id} thing={thing} />
             ))}
           </Flex>
@@ -52,78 +68,133 @@ const ThingManager = () => {
 };
 
 const CreateThing = () => {
-  const [creationError, setCreationError] = useState<
-    NativeOrAPICallError | undefined
-  >();
-  const [isFetching, setIsFetching] = useState(false);
   const addThing = state.useState((s) => s.addThing);
+  const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
+    F.pipe(
+      TE.tryCatch(
+        async () =>
+          await backend.createThing({
+            body: { payload: "" },
+          }),
+        E.toError,
+      ),
+      TE.chainW((d) => TE.fromEither(toEither(d))),
+      TE.map(addThing),
+    ),
+  );
+  task.logIfError(taskState);
   return (
-    <Button
-      leftIcon={<AddIcon />}
-      aria-label="Create new thing"
-      isLoading={isFetching}
-      loadingText={"Creating..."}
-      colorScheme={creationError ? "red" : undefined}
-      onClick={() => {
-        if (!isFetching) {
-          setIsFetching(true);
-          void F.pipe(
-            TE.tryCatch(
-              async () =>
-                await backend.createThing({
-                  body: { payload: "" },
-                }),
-              E.toError,
-            ),
-            TE.chainW((d) => TE.fromEither(toEither(d))),
-            TE.bimap(setCreationError, addThing),
-            T.map((e) => {
-              setIsFetching(false);
-              if (creationError !== undefined && E.isRight(e)) {
-                setCreationError(undefined);
-              }
-            }),
-          )();
-        }
-      }}
+    <Tooltip
+      label={task.isInvoking(taskState) ? "Creating..." : "Create a new thing"}
+      colorScheme={task.isError(taskState) ? "red" : undefined}
+      placement="top"
+      closeOnClick={false}
     >
-      Create
-    </Button>
+      <IconButton
+        icon={<AddIcon />}
+        aria-label="Create a new thing"
+        onClick={invokeTask}
+      >
+        Refresh all
+      </IconButton>
+    </Tooltip>
   );
 };
 
 const RefreshThings = () => {
-  const things = state.useState((s) => s.things);
   const resetThings = state.useState((s) => s.resetThings);
-  const [error, setError] = useState<NativeOrAPICallError | undefined>();
-  const [isFetching, setIsFetching] = useState(false);
-  const refreshThings = useCallback(() => {
-    if (!isFetching) {
-      setIsFetching(true);
-      void F.pipe(
-        TE.tryCatch(async () => await backend.getThings(), E.toError),
-        TE.chainW((r) => TE.fromEither(toEither(r))),
-        TE.bimap(setError, resetThings),
-        T.map(() => setIsFetching(false)),
-      )();
-    }
-  }, [isFetching, resetThings]);
+  const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
+    F.pipe(
+      TE.tryCatch(async () => await backend.getThings(), E.toError),
+      TE.chainW((r) => TE.fromEither(toEither(r))),
+      TE.map(resetThings),
+    ),
+  );
+  task.logIfError(taskState);
   useEffect(() => {
-    if (error === undefined && things === undefined) {
-      void refreshThings();
+    if (task.isInitial(taskState)) {
+      invokeTask();
     }
-  }, [things, error, refreshThings]);
+  }, [taskState, invokeTask]);
   return (
-    <Button
-      rightIcon={<RepeatIcon />}
-      aria-label="Refresh things from backend"
-      isLoading={isFetching}
-      loadingText={"Refreshing..."}
-      colorScheme={error === undefined ? undefined : "red"}
-      onClick={() => void refreshThings()}
+    <Tooltip
+      label={
+        task.isInvoking(taskState)
+          ? "Refreshing..."
+          : "Refresh all things from backend"
+      }
+      colorScheme={task.isError(taskState) ? "red" : undefined}
+      placement="top"
+      closeOnClick={false}
     >
-      Refresh all
-    </Button>
+      <IconButton
+        icon={<RepeatIcon />}
+        aria-label="Refresh all things from backend"
+        onClick={invokeTask}
+      >
+        Refresh all
+      </IconButton>
+    </Tooltip>
+  );
+};
+
+const RestoreThing = () => {
+  const fieldRef = useRef(null);
+  const addThing = state.useState((s) => s.addThing);
+  const { taskState, invokeTask } = task.useAsyncFailableTask((id: string) => {
+    if (id.length > 0) {
+      return F.pipe(
+        TE.tryCatch(
+          async () => backend.restoreThing({ url: { id } }),
+          E.toError,
+        ),
+        TE.chainW((r) => TE.fromEither(toEither(r))),
+        TE.map(addThing),
+      );
+    }
+  });
+  task.logIfError(taskState);
+  return (
+    <Popover placement="right" initialFocusRef={fieldRef}>
+      <Tooltip
+        label={
+          task.isInvoking(taskState)
+            ? "Restoring..."
+            : "Restore thing with given ID"
+        }
+        colorScheme={task.isError(taskState) ? "red" : undefined}
+        placement="top"
+        closeOnClick={false}
+      >
+        <Box display="inline-block">
+          <PopoverTrigger>
+            <IconButton
+              icon={<RepeatClockIcon />}
+              aria-label="Restore thing with given ID"
+              colorScheme={task.isError(taskState) ? "red" : undefined}
+            >
+              Restore
+            </IconButton>
+          </PopoverTrigger>
+        </Box>
+      </Tooltip>
+      <Portal>
+        <PopoverContent>
+          <FocusLock returnFocus persistentFocus={false}>
+            <PopoverArrow />
+            <Input
+              placeholder="Thing ID"
+              ref={fieldRef}
+              onBlur={(evt) => {
+                const id = evt.currentTarget.value;
+                evt.currentTarget.value = "";
+                invokeTask(id);
+              }}
+            />
+          </FocusLock>
+        </PopoverContent>
+      </Portal>
+    </Popover>
   );
 };
 
@@ -132,36 +203,82 @@ const Thing = ({
 }: {
   thing: proto.RuntimeOf<protocol.data.things.Thing>;
 }) => {
-  const [isBusy, setIsBusy] = useState(false);
-  const [isInvalid, setIsInvalid] = useState(false);
   const removeThing = state.useState((s) => s.removeThing);
   const updateThing = state.useState((s) => s.updateThing);
+  const { taskState: refreshTaskState, invokeTask: invokeRefreshTask } =
+    task.useAsyncFailableTask(() => {
+      if (!isBusy) {
+        return F.pipe(
+          TE.tryCatch(
+            async () => await backend.readThing({ url: { id: thing.id } }),
+            E.toError,
+          ),
+          TE.chainW((r) => TE.fromEither(toEither(r))),
+          TE.map(updateThing),
+          TE.map(() => setIsInvalid(false)),
+        );
+      }
+    });
+  const { taskState: deleteTaskState, invokeTask: invokeDeleteTask } =
+    task.useAsyncFailableTask(() => {
+      if (!isBusy) {
+        return F.pipe(
+          TE.tryCatch(
+            async () => await backend.deleteThing({ url: { id: thing.id } }),
+            E.toError,
+          ),
+          TE.chainW((r) => TE.fromEither(toEither(r))),
+          TE.map(removeThing),
+          TE.map(() => setIsInvalid(false)),
+        );
+      }
+    });
+  const { taskState: updateTaskState, invokeTask: invokeUpdateTask } =
+    task.useAsyncFailableTask((payload: string) => {
+      if (!isBusy) {
+        return F.pipe(
+          TE.tryCatch(
+            async () =>
+              await backend.updateThing({
+                url: { id: thing.id },
+                body: { payload },
+              }),
+            E.toError,
+          ),
+          TE.chainW((r) => TE.fromEither(toEither(r))),
+          TE.map(updateThing),
+          TE.map(() => setIsInvalid(false)),
+        );
+      }
+    });
+  task.logIfError(refreshTaskState);
+  task.logIfError(deleteTaskState);
+  task.logIfError(updateTaskState);
+  const isBusy =
+    task.isInvoking(refreshTaskState) ||
+    task.isInvoking(deleteTaskState) ||
+    task.isInvoking(updateTaskState);
+  const [isInvalid, setIsInvalid] = useState(false);
   return (
-    <Flex direction="row">
+    <Flex direction="row" p={2}>
       <Center>
-        <IconButton
-          aria-label={`Refresh thing ${thing.id}`}
-          icon={<RepeatIcon />}
-          isDisabled={isBusy}
-          onClick={() => {
-            if (!isBusy) {
-              setIsBusy(true);
-              void F.pipe(
-                TE.tryCatch(
-                  async () =>
-                    await backend.readThing({ url: { id: thing.id } }),
-                  E.toError,
-                ),
-                TE.chainW((r) => TE.fromEither(toEither(r))),
-                TE.bimap(
-                  () => setIsInvalid(true),
-                  (d) => updateThing(d),
-                ),
-                T.map(() => setIsBusy(false)),
-              )();
-            }
-          }}
-        />
+        <Tooltip
+          label={
+            task.isInvoking(deleteTaskState)
+              ? "Refreshing..."
+              : "Refresh contents of this thing"
+          }
+          colorScheme={task.isError(deleteTaskState) ? "red" : undefined}
+          placement="left"
+          closeOnClick={false}
+        >
+          <IconButton
+            aria-label={`Refresh thing ${thing.id}`}
+            icon={<RepeatIcon />}
+            isDisabled={isBusy}
+            onClick={invokeRefreshTask}
+          />
+        </Tooltip>
       </Center>
       <Box flex={1}>
         <SimpleGrid
@@ -186,57 +303,36 @@ const Thing = ({
                   setIsInvalid(false);
                 }
               },
-              onValueChangeSubmit: (newValue) => {
-                if (!isBusy) {
-                  setIsBusy(true);
-                  return F.pipe(
-                    TE.tryCatch(
-                      async () =>
-                        await backend.updateThing({
-                          url: { id: thing.id },
-                          body: { payload: newValue },
-                        }),
-                      E.toError,
-                    ),
-                    TE.chainW((r) => TE.fromEither(toEither(r))),
-                    TE.bimap(
-                      () => setIsInvalid(true),
-                      (d) => updateThing(d),
-                    ),
-                    T.map(() => setIsBusy(false)),
-                  );
-                }
-              },
+              onValueChangeSubmit: invokeUpdateTask,
+              updateTaskState: updateTaskState,
             }}
           />
         </SimpleGrid>
       </Box>
       <Center>
-        <IconButton
-          aria-label={`Delete ${thing.id}`}
-          isDisabled={isBusy}
-          icon={<DeleteIcon />}
-          onClick={() => {
-            if (!isBusy) {
-              setIsBusy(true);
-              void F.pipe(
-                TE.tryCatch(
-                  async () =>
-                    await backend.deleteThing({ url: { id: thing.id } }),
-                  E.toError,
-                ),
-                TE.toUnion,
-                T.map(() => removeThing(thing.id)),
-              )();
-            }
-          }}
-        />
+        <Tooltip
+          label={
+            task.isInvoking(deleteTaskState)
+              ? "Deleting..."
+              : "Delete this thing"
+          }
+          colorScheme={task.isError(deleteTaskState) ? "red" : undefined}
+          placement="right"
+          closeOnClick={false}
+        >
+          <IconButton
+            aria-label={`Delete ${thing.id}`}
+            isDisabled={isBusy}
+            icon={<DeleteIcon />}
+            onClick={invokeDeleteTask}
+          />
+        </Tooltip>
       </Center>
     </Flex>
   );
 };
 
-const PropertyEditor = ({
+const PropertyEditor = <E, T>({
   mutableValueInfo,
   ...props
 }: {
@@ -245,17 +341,30 @@ const PropertyEditor = ({
   isDisabled: boolean;
   value: string;
   mutableValueInfo?: {
-    onValueChangeSubmit: (newValue: string) => T.Task<unknown> | undefined;
+    updateTaskState: task.TaskInvocationState<E, T>;
+    onValueChangeSubmit: (newValue: string) => unknown;
     onValueChange: () => void;
   };
 }) => {
-  const [hasUpdated, setHasUpdated] = useState(false);
+  const [hasUpdated, setHasUpdated] = useState<
+    "initial" | "seenUpdate" | "timeoutCompleted"
+  >("initial");
+  if (mutableValueInfo) {
+    const newHasUpdated =
+      task.isSuccess(mutableValueInfo.updateTaskState) ||
+      task.isError(mutableValueInfo.updateTaskState);
+    if (hasUpdated === "initial" && newHasUpdated) {
+      setHasUpdated("seenUpdate");
+    } else if (hasUpdated === "timeoutCompleted" && !newHasUpdated) {
+      setHasUpdated("initial");
+    }
+  }
   const timeout = 1000;
   useEffect(() => {
     let timeoutId: number | undefined;
-    if (hasUpdated) {
+    if (hasUpdated === "seenUpdate") {
       timeoutId = window.setTimeout(() => {
-        setHasUpdated(false);
+        setHasUpdated("timeoutCompleted");
       }, timeout);
     }
     return () => {
@@ -271,7 +380,7 @@ const PropertyEditor = ({
         {props.name}
       </Text>
       <Tooltip
-        isOpen={hasUpdated}
+        isOpen={hasUpdated === "seenUpdate"}
         label={"Value saved!"}
         placement="top"
         defaultIsOpen={false}
@@ -292,16 +401,7 @@ const PropertyEditor = ({
                 ? (evt) => {
                     const newValue = evt.currentTarget.value;
                     if (newValue != props.value) {
-                      const maybeTask =
-                        mutableValueInfo.onValueChangeSubmit(newValue);
-                      if (maybeTask) {
-                        void F.pipe(
-                          maybeTask,
-                          T.map(() => {
-                            setHasUpdated(true);
-                          }),
-                        )();
-                      }
+                      mutableValueInfo.onValueChangeSubmit(newValue);
                     }
                   }
                 : undefined

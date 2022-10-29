@@ -96,7 +96,7 @@ export const undeleteThing = F.pipe(
     username,
     id,
   }),
-  internal.executeSQL`UPDATE things SET updated_by = ${"username"} WHERE is_deleted IS TRUE AND id = ${"id"} RETURNING ${thingColumnListString}`,
+  internal.executeSQL`UPDATE things SET updated_by = ${"username"}, is_deleted = FALSE WHERE is_deleted IS TRUE AND id = ${"id"} RETURNING ${thingColumnListString}`,
   internal.singleRowQuery(thingValidation),
   internal.usingConnectionPool,
 );

@@ -23,7 +23,7 @@ BEGIN
   IF OLD.created_by <> NEW.created_by THEN
     NEW.created_by = OLD.created_by;
   END IF;
-  IF NEW.deleted_by IS NOT NULL THEN
+  IF NEW.is_deleted IS FALSE AND NEW.deleted_by IS NOT NULL THEN
     NEW.deleted_by = NULL;
   END IF;
 
