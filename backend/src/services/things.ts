@@ -60,13 +60,13 @@ export const createThing = F.pipe(
   }),
   internal.executeSQL`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${"id"}, gen_random_uuid()), ${"payload"}, ${"username"}) RETURNING ${thingColumnListString}`,
   internal.singleRowQuery(thingValidation),
-  internal.toService,
+  internal.usingConnectionPool,
 );
 export const getThing = F.pipe(
   ({ thing }: GetThingInput) => thing,
   internal.executeSQL`SELECT * FROM things WHERE is_deleted IS FALSE AND id = ${"id"}`,
   internal.singleRowQuery(thingValidation),
-  internal.toService,
+  internal.usingConnectionPool,
 );
 
 export const updateThing = F.pipe(
@@ -78,7 +78,7 @@ export const updateThing = F.pipe(
   }),
   internal.executeSQL`UPDATE things t SET updated_by = ${"username"}, payload = CASE WHEN ${"payloadPresent"} IS TRUE THEN ${"payload"} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`,
   internal.singleRowQuery(thingValidation),
-  internal.toService,
+  internal.usingConnectionPool,
 );
 
 export const deleteThing = F.pipe(
@@ -88,7 +88,7 @@ export const deleteThing = F.pipe(
   }),
   internal.executeSQL`UPDATE things SET deleted_by = ${"username"}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`,
   internal.singleRowQuery(thingValidation),
-  internal.toService,
+  internal.usingConnectionPool,
 );
 
 export const undeleteThing = F.pipe(
@@ -98,7 +98,7 @@ export const undeleteThing = F.pipe(
   }),
   internal.executeSQL`UPDATE things SET updated_by = ${"username"} WHERE is_deleted IS TRUE AND id = ${"id"} RETURNING ${thingColumnListString}`,
   internal.singleRowQuery(thingValidation),
-  internal.toService,
+  internal.usingConnectionPool,
 );
 
 // Getting more than one thing at a time
@@ -109,7 +109,7 @@ export const getThings = F.pipe(
   },
   internal.executeSQL`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`,
   internal.multiRowQuery(thingValidation),
-  internal.toService,
+  internal.usingConnectionPool,
 );
 
 // Things statistics
@@ -131,7 +131,7 @@ export const getThingsCount = F.pipe(
     //   ),
     t.number,
   ),
-  internal.toService,
+  internal.usingConnectionPool,
 );
 
 // Types

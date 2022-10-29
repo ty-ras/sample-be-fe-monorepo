@@ -2,36 +2,32 @@ import * as protocol from "../../protocol";
 import * as aux from "../auxiliary";
 import * as services from "../../services";
 import * as data from "@ty-ras/data-backend-io-ts";
-import * as dataGeneric from "@ty-ras/data-io-ts";
-import type * as protocolTyras from "@ty-ras/protocol";
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 
-export const createThingsEndpoints = (
-  builder: aux.Builder,
-  dbPool: services.DBPool,
-) => [
+export const createThingsEndpoints = (builder: aux.Builder) => [
   builder.atURL`/${"id"}`
     .validateURLData(
       data.url({
         id: { decoder: thingObject.props.id, regExp: services.thingIDRegex },
       }),
     )
-    .batchSpec(readThing(dbPool))
-    .batchSpec(updateThing(dbPool))
-    .batchSpec(deleteThing(dbPool))
+    .batchSpec(readThing)
+    .batchSpec(updateThing)
+    .batchSpec(deleteThing)
+    .batchSpec(undeleteThing)
     .createEndpoint({
-      openapi: { summary: "Read, update, or delete a thing" },
+      openapi: { summary: "Read, update, delete, or restore a single thing" },
     }),
   builder.atURL``
-    .batchSpec(createThing(dbPool))
-    .batchSpec(getThings(dbPool))
+    .batchSpec(createThing)
+    .batchSpec(getThings)
     .createEndpoint({
       openapi: {
-        summary: "Query thing(s)",
+        summary: "Query thing statistics",
       },
     }),
-  builder.atURL`/statistics`.batchSpec(getThingsCount(dbPool)).createEndpoint({
+  builder.atURL`/statistics`.batchSpec(getThingsCount).createEndpoint({
     openapi: {
       summary: "Get amount of things",
     },
@@ -46,14 +42,16 @@ const thingObject = t.type({
   created_at: tt.DateFromISOString,
   updated_at: tt.DateFromISOString,
 });
-const exampleThing: protocolTyras.EncodedOf<
-  dataGeneric.HKTEncoded,
-  protocol.data.things.Thing
-> = {
+//  protocolTyras.EncodedOf<
+//   dataGeneric.HKTEncoded,
+//   protocol.data.things.Thing
+// >
+
+const exampleThing: t.TypeOf<typeof thingObject> = {
   id: "Dummy ID",
   payload: "Dummy payload",
-  created_at: "",
-  updated_at: "",
+  created_at: new Date(0),
+  updated_at: new Date(0),
   created_by: "User",
   updated_by: "User",
 };
@@ -189,7 +187,20 @@ const undeleteThing = aux
       method: "POST",
       mdArgs: {
         openapi: {
-          ...aux.mdArgsBase(),
+          ...aux.mdArgsBase(
+            {
+              description: "The thing undeleted from database",
+              example: exampleThing,
+            },
+            {
+              description: "Restore a previously deleted thing by its ID.",
+            },
+          ),
+          urlParameters: {
+            id: {
+              description: "The ID of the thing to restore",
+            },
+          },
         },
       },
     },

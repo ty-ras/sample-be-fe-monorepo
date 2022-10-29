@@ -10,16 +10,13 @@ export {
   AUTH_SCHEME,
 } from "./auxiliary";
 
-export const createEndpoints = (pool: services.DBPool) => {
+export const createEndpoints = () => {
   // Create builder: 'initial' which doesn't require any metadata added to endpoints
   // And 'withMD' which requires few OpenAPI manual things added to endpoints (schema generation is automatic).
   const { noMetadata, withOpenAPI } = aux.createBuilders();
 
   // Add things endpoints with their metdata
-  const thingsEndpointsAndMD = endpoints.createThingsEndpoints(
-    withOpenAPI,
-    pool,
-  );
+  const thingsEndpointsAndMD = endpoints.createThingsEndpoints(withOpenAPI);
 
   // Add endpoint to serve automatically generated OpenAPI Document
   const openapiDoc = endpoints.createOpenAPIEndpoint(

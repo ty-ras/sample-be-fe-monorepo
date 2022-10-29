@@ -25,7 +25,7 @@ export interface ValidatedAnyExecutor<TArgs extends Array<any>, T> {
 
 export interface Service<TParams, TReturn> {
   validation: t.Type<TReturn>;
-  createTask: (pool: DBPool) => (arg: TParams) => TE.TaskEither<Error, TReturn>;
+  createTask: (pool: DBPool, arg: TParams) => TE.TaskEither<Error, TReturn>;
 }
 
 export const getErrorObject = (error: string | Error | t.Errors): Error =>

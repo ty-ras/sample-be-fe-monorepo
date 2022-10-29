@@ -25,7 +25,7 @@ export const startServer = async ({
   await serverGeneric.listenAsync(
     server.createServer({
       // Endpoints comprise the REST API as a whole
-      endpoints: api.createEndpoints(dbPool.db),
+      endpoints: api.createEndpoints(),
       // React on various server events.
       events: F.flow(
         // First, trigger CORS handler (it will modify the context object of eventArgs)

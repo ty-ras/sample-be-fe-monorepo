@@ -10,10 +10,8 @@ import type * as services from "../../services";
 export type EndpointSpec<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   TFunctionality extends TFunctionalityBase,
-  TStateSpec extends object = { db: true },
-> = (
-  pool: services.DBPool,
-) => dataBE.EndpointSpec<
+  TStateSpec extends object,
+> = dataBE.EndpointSpec<
   TProtocolSpec,
   () => TFunctionality extends services.Service<infer _, infer T> ? T : never,
   server.ServerContext,

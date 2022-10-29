@@ -6,12 +6,10 @@ import * as openapi from "@ty-ras/metadata-openapi";
 export const mdArgsBase = <TOutput>(
   output: { description: string; example: TOutput },
   operation: openapi.OpenAPIArgumentsStatic["operation"],
-): ReturnType<
-  types.EndpointSpec<
-    protocol.ProtocolSpecCore<string, any>,
-    types.TFunctionalityBase<any, TOutput>,
-    any
-  >
+): types.EndpointSpec<
+  protocol.ProtocolSpecCore<string, any>,
+  types.TFunctionalityBase<any, TOutput>,
+  any
 >["mdArgs"]["openapi"] => ({
   urlParameters: undefined,
   queryParameters: undefined,
@@ -22,7 +20,8 @@ export const mdArgsBase = <TOutput>(
     description: output.description,
     mediaTypes: {
       "application/json": {
-        example: output.example,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        example: output.example as any,
       },
     },
   },

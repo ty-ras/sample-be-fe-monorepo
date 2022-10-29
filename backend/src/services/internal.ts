@@ -151,7 +151,7 @@ export const transformResult =
     createTask: F.flow(createTask, transformTask),
   });
 
-export const toService = <
+export const usingConnectionPool = <
   TFunctionParameters,
   TQueryParameters,
   TValidation extends t.Mixed,
@@ -165,10 +165,9 @@ export const toService = <
   TValidation
 >): common.Service<TFunctionParameters, t.TypeOf<TValidation>> => ({
   validation,
-  createTask: ({ acquire, release }) =>
-    F.flow(transform, (args) =>
-      TE.bracket(acquire(), (db) => createTask(db, args), release),
-    ),
+  createTask: F.flow(({ acquire, release }, args) =>
+    TE.bracket(acquire(), (db) => createTask(db, transform(args)), release),
+  ),
 });
 
 const _createTask = <TQueryParameters, TValidation extends t.Mixed>(
@@ -191,11 +190,7 @@ const _createTask = <TQueryParameters, TValidation extends t.Mixed>(
         TE.mapLeft(common.getErrorObject),
       )
     : F.flow(
-        // Execute query
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        (db, _) =>
-          TE.tryCatch(async () => await db.query(queryString), E.toError),
-        // Validate query result
+        (db) => TE.tryCatch(async () => await db.query(queryString), E.toError),
         TE.chainW(({ rows }) => TE.fromEither(validation.decode(rows))),
         TE.mapLeft(common.getErrorObject),
       );

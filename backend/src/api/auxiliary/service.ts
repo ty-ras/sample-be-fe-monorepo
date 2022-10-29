@@ -3,6 +3,7 @@
 import type * as protocol from "@ty-ras/protocol";
 import * as dataBE from "@ty-ras/data-backend-io-ts";
 import * as data from "@ty-ras/data-io-ts";
+import * as spec from "@ty-ras/endpoint-spec";
 import * as services from "../../services";
 import * as types from "./types";
 import * as state from "./state";
@@ -16,21 +17,18 @@ export const withResponseBody = <
     data.GetEncoded<TProtocolSpec["responseBody"]>
   >,
 ): SpecCreator<TProtocolSpec> => ({
-  createEndpoint:
-    ({ createTask }, stateSpec, apiSpec, extractArgs) =>
-    (pool) => {
-      const executor = F.flow(
-        createTask(pool),
-        TE.getOrElseW(services.throwIfError),
-      );
-      return {
-        ...apiSpec,
-        state: state.endpointState(stateSpec),
-        output: dataBE.responseBodyForValidatedData(validation),
-        endpointHandler: async (...args: Parameters<typeof extractArgs>) =>
-          await executor(extractArgs(...args))(),
-      } as any;
-    },
+  createEndpoint: ({ createTask }, stateSpec, apiSpec, extractArgs) => {
+    const executor = F.flow(createTask, TE.getOrElseW(services.throwIfError));
+    return {
+      ...apiSpec,
+      state: state.endpointState(stateSpec),
+      output: dataBE.responseBodyForValidatedData(validation),
+      endpointHandler: async (
+        args: spec.EndpointHandlerArgs<any, state.GetState<{ db: true }>>,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      ) => await executor(args.state.db.db, extractArgs(args as any))(),
+    } as any;
+  },
 });
 
 export interface SpecCreator<
@@ -38,20 +36,22 @@ export interface SpecCreator<
 > {
   createEndpoint: <
     TFunctionality extends types.TFunctionalityBase,
-    TStateSpec extends object,
+    TStateSpec extends { db: true },
   >(
     functionality: TFunctionality,
     stateSpec: TStateSpec,
     apiSpec: Omit<
-      ReturnType<types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>>,
+      types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>,
       "endpointHandler" | "output" | "state"
     >,
     extractArgs: (
-      ...args: Parameters<
-        ReturnType<
-          types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>
+      args: Parameters<
+        types.EndpointSpec<
+          TProtocolSpec,
+          TFunctionality,
+          TStateSpec
         >["endpointHandler"]
-      >
+      >[0],
     ) => TFunctionality extends services.Service<infer TParams, infer _>
       ? TParams
       : never,
