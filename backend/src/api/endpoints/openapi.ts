@@ -31,7 +31,7 @@ export const createOpenAPIEndpoint = (
         return returnMD;
       },
       // Proper validator for OpenAPI objects is out of scope of this sample
-      data.responseBody(t.unknown),
+      data.responseBodyForValidatedData(t.unknown),
       // No metadata - as this is the metadata-returning endpoint itself
       {},
     )

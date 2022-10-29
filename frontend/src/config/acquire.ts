@@ -15,7 +15,7 @@ export const acquireConfigurationOrThrow = () =>
     ),
     E.chainW((configAsString) =>
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      E.tryCatch(() => JSON.parse(configAsString), common.makeError),
+      E.tryCatch(() => JSON.parse(configAsString), E.toError),
     ),
     E.chainW((configAsUnvalidated) => data.config.decode(configAsUnvalidated)),
     E.getOrElseW(common.getErrorObject),

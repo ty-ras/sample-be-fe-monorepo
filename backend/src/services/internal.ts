@@ -1,95 +1,261 @@
 import * as t from "io-ts";
-import type * as db from "postgres";
+import type * as db from "pg";
 import * as common from "./common";
-import { function as F, task as T, taskEither as TE } from "fp-ts";
+import { function as F, either as E, taskEither as TE } from "fp-ts";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export const createDBService = <
-  TValidation extends t.Mixed,
-  TArgs extends Array<any>,
+export type ParameterTransform<TFunctionParameters, TQueryParameters> = (
+  args: TFunctionParameters,
+) => TQueryParameters;
+
+export function executeSQL(
+  template: TemplateStringsArray,
+): <TFunctionParameters>(
+  transform: ParameterTransform<TFunctionParameters, void>,
+) => QueryAndTransform<TFunctionParameters, void>;
+export function executeSQL<
+  TArgs extends [SQLTemplateParameter, ...Array<SQLTemplateParameter>],
 >(
-  createFunctionality: (validation: TValidation) => (
-    ...args: TArgs
-  ) => () => Promise<
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    TValidation extends t.Type<infer T, infer _0, infer _1> ? T : never
+  template: TemplateStringsArray,
+  ...args: TArgs
+): <TFunctionParameters>(
+  transform: ParameterTransform<
+    TFunctionParameters,
+    TArgs[number] extends AsIsSQL
+      ? void
+      : Record<TArgs[number] & string, unknown>
   >,
-  validation: TValidation,
-): common.Service<
-  TValidation,
-  (
-    ...args: TArgs
-  ) => ReturnType<ReturnType<ReturnType<typeof createFunctionality>>>
-> => {
-  const functionality = createFunctionality(validation);
-  return {
-    validation,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    functionality: async (...args) => await functionality(...args)(),
-  };
-};
-
-export const dbQueryWithoutParameters = <T>(
-  query: string,
-  validation: t.Decoder<unknown, T>,
-) => {
-  const template = makeTemplateString(query);
-  return F.flow(
-    // Execute query
-    (db: db.Sql) =>
-      TE.tryCatch(async () => await db(template), common.makeError),
-    // Validate query result
-    TE.chainW((rows) => TE.fromEither(validation.decode(rows))),
-    // Merge Either<X,Y> into X | Y
-    TE.getOrElseW((error) => T.of(common.getErrorObject(error))),
-    // Throw if X | Y instanceof Error
-    T.map(common.throwIfError),
-  );
-};
-
-export const makeTemplateString = (string: string): TemplateStringsArray => {
-  const result = [string] as const;
-  return {
-    ...result,
-    raw: result,
-  };
-};
-
-export const oneRowQuery = <TValidation extends ArrayTypeBase>(
-  array: TValidation,
+) => QueryAndTransform<
+  TFunctionParameters,
+  TArgs[number] extends AsIsSQL ? void : Record<TArgs[number] & string, unknown>
+>;
+export function executeSQL<TArgs extends Array<SQLTemplateParameter>>(
+  template: TemplateStringsArray,
+  ...args: TArgs
+): <TFunctionParameters>(
+  transform: ParameterTransform<
+    TFunctionParameters,
+    void | Record<TArgs[number] & string, unknown>
+  >,
 ) =>
-  array.pipe<
-    GetArrayValidationElementType<TValidation>,
-    GetArrayValidationArrayType<TValidation>,
+  | QueryAndTransform<TFunctionParameters, void>
+  | QueryAndTransform<
+      TFunctionParameters,
+      void | Record<TArgs[number] & string, unknown>
+    > {
+  return (transform) => {
+    const parameterNames: Array<string> = [];
+    const queryString = constructTemplateString(template, args, (arg, idx) => {
+      if (typeof arg === "string") {
+        parameterNames.push(arg);
+        arg = `$${idx + 1}`;
+      } else {
+        arg = arg.str;
+      }
+      return arg;
+    });
+    return {
+      transform,
+      queryString,
+      queryParameterNames: parameterNames as unknown as ReadonlyArray<never>,
+    };
+  };
+}
+export type SQLTemplateParameter = string | AsIsSQL;
+export interface QueryAndTransform<TFunctionParameters, TQueryParameters> {
+  transform: ParameterTransform<TFunctionParameters, TQueryParameters>;
+  queryString: string;
+  queryParameterNames: ReadonlyArray<keyof TQueryParameters>;
+}
+
+export const multiRowQuery = <T extends t.Mixed>(
+  singleRowValidation: T,
+): (<TFunctionParameters, TQueryParameters>(
+  queryAndTransform: QueryAndTransform<TFunctionParameters, TQueryParameters>,
+) => QueryWithValidatedRows<TFunctionParameters, t.ArrayC<T>>) => {
+  const validation = t.array(singleRowValidation);
+  return <TFunctionParameters, TQueryParameters>({
+    transform,
+    queryString,
+    queryParameterNames,
+  }: QueryAndTransform<TFunctionParameters, TQueryParameters>) => ({
+    validation,
+    createTask: _createTask(
+      transform,
+      queryString,
+      queryParameterNames,
+      validation,
+    ),
+  });
+};
+
+export const singleRowQuery = <T extends t.Mixed>(
+  singleRowValidation: T,
+): (<TFunctionParameters, TQueryParameters>(
+  queryAndTransform: QueryAndTransform<TFunctionParameters, TQueryParameters>,
+) => QueryWithValidatedRows<
+  TFunctionParameters,
+  t.Type<t.TypeOf<T>, Array<t.OutputOf<T>>, unknown>
+>) => {
+  const validation = arrayOfOneElement(singleRowValidation);
+  return <TFunctionParameters, TQueryParameters>({
+    transform,
+    queryString,
+    queryParameterNames,
+  }: QueryAndTransform<TFunctionParameters, TQueryParameters>) => ({
+    validation,
+    createTask: _createTask(
+      transform,
+      queryString,
+      queryParameterNames,
+      validation,
+    ),
+  });
+};
+
+export interface QueryWithValidatedRows<
+  TFunctionParameters,
+  TValidation extends t.Mixed,
+> {
+  validation: TValidation;
+  createTask: CreateDBQueryTask<TFunctionParameters, TValidation>;
+}
+
+export type CreateDBQueryTask<TParameters, TValidation extends t.Mixed> = (
+  db: db.Client,
+  parameters: TParameters,
+) => TE.TaskEither<Error, t.TypeOf<TValidation>>;
+
+export const queryFurther =
+  <TQueryValidation extends t.Mixed, TTransformValidation extends t.Mixed>(
+    queryInfo: QueryWithValidatedRows<
+      t.TypeOf<TQueryValidation>,
+      TTransformValidation
+    >,
+  ): (<TFunctionParameters>(
+    q: QueryWithValidatedRows<TFunctionParameters, TQueryValidation>,
+  ) => QueryWithValidatedRows<TFunctionParameters, TTransformValidation>) =>
+  ({ createTask }) => ({
+    validation: queryInfo.validation,
+    createTask: F.flow(
+      (db, args) =>
+        TE.of<Error, { db: typeof db; args: typeof args }>({ db, args }),
+      TE.chain((dbAndArgs) =>
+        F.pipe(
+          createTask(dbAndArgs.db, dbAndArgs.args),
+          TE.map((result) => ({ db: dbAndArgs.db, result })),
+          TE.chain((dbAndResult) =>
+            queryInfo.createTask(dbAndResult.db, dbAndResult.result),
+          ),
+        ),
+      ),
+    ),
+  });
+
+export const transformResult =
+  <TResult, TTransformValidation extends t.Mixed>(
+    transformTask: (
+      task: TE.TaskEither<Error, TResult>,
+    ) => TE.TaskEither<Error, t.TypeOf<TTransformValidation>>,
+    validation: TTransformValidation,
+  ): (<TFunctionParameters>(
+    service: common.Service<TFunctionParameters, TResult>,
+  ) => common.Service<TFunctionParameters, t.TypeOf<TTransformValidation>>) =>
+  ({ createTask }) => ({
+    createTask: F.flow(createTask, transformTask),
+    validation,
+  });
+
+export const usingConnectionPool = <
+  TFunctionParameters,
+  TValidation extends t.Mixed,
+>({
+  validation,
+  createTask,
+}: QueryWithValidatedRows<TFunctionParameters, TValidation>): common.Service<
+  TFunctionParameters,
+  t.TypeOf<TValidation>
+> => ({
+  validation,
+  createTask: F.flow(({ acquire, release }, args) =>
+    TE.bracket(acquire(), (db) => createTask(db, args), release),
+  ),
+});
+
+const _createTask = <
+  TFunctionParameters,
+  TQueryParameters,
+  TValidation extends t.Mixed,
+>(
+  transform: ParameterTransform<TFunctionParameters, TQueryParameters>,
+  queryString: string,
+  queryParameterNames: ReadonlyArray<keyof TQueryParameters>,
+  validation: TValidation,
+): CreateDBQueryTask<TFunctionParameters, TValidation> =>
+  queryParameterNames.length > 0
+    ? F.flow(
+        (db, parameters) => {
+          const qParameters = transform(parameters);
+          return TE.tryCatch(
+            async () =>
+              await db.query(
+                queryString,
+                queryParameterNames.map((paramName) => qParameters[paramName]),
+              ),
+            E.toError,
+          );
+        },
+        TE.chainW(({ rows }) => TE.fromEither(validation.decode(rows))),
+        TE.mapLeft(common.getErrorObject),
+      )
+    : F.flow(
+        (db) => TE.tryCatch(async () => await db.query(queryString), E.toError),
+        TE.chainW(({ rows }) => TE.fromEither(validation.decode(rows))),
+        TE.mapLeft(common.getErrorObject),
+      );
+
+export const arrayOfOneElement = <TValidation extends t.Mixed>(
+  singleRow: TValidation,
+) =>
+  t.array(singleRow, "Rows").pipe<
+    t.TypeOf<TValidation>,
+    Array<t.TypeOf<TValidation>>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     any,
-    GetArrayValidationArrayType<TValidation>
+    Array<t.TypeOf<TValidation>>
   >(
     new t.Type(
-      "FirstElement",
-      (u): u is GetArrayValidationElementType<TValidation> => array.type.is(u),
+      singleRow.name,
+      (u): u is t.TypeOf<TValidation> => singleRow.is(u),
       (i, context) =>
         i.length === 1
-          ? t.success(i[0] as GetArrayValidationElementType<TValidation>)
+          ? t.success(i[0])
           : t.failure(
               i,
               context,
               "Array was empty or contained more than one element",
             ),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      (a) => [a] as GetArrayValidationArrayType<TValidation>,
+      (a) => [a],
     ),
   );
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-type GetArrayValidationArrayType<TValidation extends ArrayTypeBase> =
-  TValidation extends t.ArrayType<infer _0, infer TArray, infer _1, infer _2>
-    ? TArray
-    : never;
-type GetArrayValidationElementType<TValidation extends ArrayTypeBase> =
-  TValidation extends t.ArrayType<infer _0, infer TArray, infer _1, infer _2>
-    ? TArray extends Array<infer T>
-      ? T
-      : never
-    : never;
+export const createSQLColumnList = <T>(props: { [P in keyof T]: unknown }) =>
+  Object.keys(props).join(", ");
 
-type ArrayTypeBase = t.ArrayType<t.Mixed, Array<any>, any, any>;
+export class AsIsSQL {
+  public constructor(public readonly str: string) {}
+}
+
+export const rawSQL = (str: string) => new AsIsSQL(str);
+
+const constructTemplateString = <T>(
+  fragments: TemplateStringsArray,
+  args: ReadonlyArray<T>,
+  transformArg: (arg: T, idx: number, fragment: string) => string,
+) =>
+  fragments.reduce(
+    (curString, fragment, idx) =>
+      `${curString}${fragment}${
+        idx >= args.length ? "" : transformArg(args[idx], idx, fragment)
+      }`,
+    "",
+  );

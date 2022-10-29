@@ -11,3 +11,4 @@ export type {
 export * from "./state";
 export * from "./builder";
 export * from "./service";
+export * from "./metadata";

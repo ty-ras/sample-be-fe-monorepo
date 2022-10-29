@@ -3,15 +3,17 @@ import type * as openapi from "@ty-ras/metadata-openapi";
 import type * as dataBE from "@ty-ras/data-backend-io-ts";
 import type * as server from "@ty-ras/server-node";
 import type * as state from "./state";
+import type * as services from "../../services";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export type EndpointSpec<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
-  TFunctionality extends (...args: Array<any>) => any,
-  TStateSpec extends object = { db: true },
+  TFunctionality extends TFunctionalityBase,
+  TStateSpec extends object,
 > = dataBE.EndpointSpec<
   TProtocolSpec,
-  TFunctionality,
+  () => TFunctionality extends services.Service<infer _, infer T> ? T : never,
   server.ServerContext,
   ReadonlyArray<keyof TStateSpec & keyof state.State>,
   state.GetState<TStateSpec>,
@@ -26,3 +28,8 @@ export type TMetadataProviders = {
     dataBE.InputValidatorSpec<any>
   >;
 };
+
+export type TFunctionalityBase<TParams = any, TReturn = any> = services.Service<
+  TParams,
+  TReturn
+>;

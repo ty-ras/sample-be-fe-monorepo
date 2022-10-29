@@ -1,4 +1,4 @@
-import create from "zustand";
+import create, { StoreApi } from "zustand";
 import { persist } from "zustand/middleware";
 import jwtDecode from "jwt-decode";
 import * as t from "io-ts";
@@ -6,16 +6,24 @@ import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
 import * as auth from "./auth";
 import config from "../config";
 import * as common from "./common";
+import * as data from "@ty-ras/data";
 
 interface User {
   // These actions are immutable
-  login: (input: UserLoginInput) => Promise<UserLoginOutput>;
+  login: (input: UserLoginInput) => Promise<auth.LoginResult>;
   logout: () => Promise<void>;
-  getTokenForAuthorization: () => Promise<string | undefined>; // Refreshes the token if needed.
+  // Refreshes the token if needed.
+  // It must be immutable because our first load might be so that we are logged in (from persistence store), so we can't start with this field set to undefined.
+  getTokenForAuthorization: () => Promise<string | undefined>;
 
   // These fields and actions are mutable
   username: string; // Empty string if not logged in
-  lastSeenToken: string; // Peek at token without checking whether it needs to refresh
+  accessToken: string; // Peek at token without checking whether it needs to refresh
+  accessTokenExpires: number; // Decoded access token
+  refreshToken: string;
+
+  // Internal stuff
+  _internalTokenRefreshPromise: undefined | Promise<string | undefined>;
 }
 
 const authenticator = auth.createAuthenticator(
@@ -27,52 +35,49 @@ export const useUserStore = create<User>()(
   persist(
     (set, get) => ({
       username: "",
-      lastSeenToken: "",
+      accessToken: "",
+      refreshToken: "",
+      accessTokenExpires: 0,
+      _internalTokenRefreshPromise: undefined,
       getTokenForAuthorization: () => {
-        // TODO check for expiration and refresh the token if needed
-        // When refreshing, make sure that get().username === input.username to avoid setting token right after logging out.
-        const token = get().lastSeenToken;
-        return Promise.resolve(token || undefined);
+        const { accessToken, refreshToken, accessTokenExpires, username } =
+          get();
+        if (
+          refreshToken &&
+          username &&
+          accessTokenExpires &&
+          // TODO make tolerance customizable (maybe put it in state?)
+          Date.now() + 1000 > accessTokenExpires
+        ) {
+          // We need to refresh token
+          let { _internalTokenRefreshPromise: promise } = get();
+          // We don't use '=== undefined' check because if we persist the
+          if (!(promise instanceof Promise)) {
+            // We need to start the promise now
+            promise = performTokenRefresh(get, set, refreshToken, username);
+            set({ _internalTokenRefreshPromise: promise });
+          }
+          return promise;
+        } else {
+          // Transform empty string into undefined
+          return Promise.resolve(accessToken || undefined);
+        }
       },
       login: async (input) =>
         await F.pipe(
           // We are performing async so lift to TaskEither immediately
           TE.of(input),
           TE.chainW((input) =>
-            TE.tryCatch(
-              async () =>
-                await authenticator.login(input.username, input.password),
-              common.makeError,
-            ),
+            authenticator.login(input.username, input.password),
           ),
-          // TODO this whole thing from here on is side-effect
-          // Try chainFirst later?
-          TE.chain(({ AuthenticationResult: authInfo, ...info }) =>
-            authInfo
-              ? F.pipe(
-                  // TODO decode also refresh token
-                  E.bindTo("accessToken")(
-                    nonEmptyStringValidation.decode(authInfo.AccessToken),
-                  ),
-                  E.bindW("unvalidatedTokenContents", ({ accessToken }) =>
-                    E.tryCatch(() => jwtDecode(accessToken), common.makeError),
-                  ),
-                  E.bindW("tokenContents", ({ unvalidatedTokenContents }) =>
-                    tokenContentsValidation.decode(unvalidatedTokenContents),
-                  ),
-                  E.map(({ tokenContents, accessToken }) => {
-                    set({
-                      username: tokenContents.username,
-                      lastSeenToken: accessToken,
-                    });
-                    return info;
-                  }),
-                  TE.fromEither,
-                )
+          // Set state as side-effect
+          TE.chainFirst((tokenOrMFA) =>
+            tokenOrMFA.result === "tokens"
+              ? F.pipe(setTokensToState(set, tokenOrMFA), TE.fromEither)
               : TE.left(
                   new Error(
                     `We probably encountered MFA response? (${
-                      info.ChallengeName ?? "<No challenge>"
+                      tokenOrMFA.challengeName ?? "<No challenge>"
                     })`,
                   ),
                 ),
@@ -81,16 +86,17 @@ export const useUserStore = create<User>()(
           T.map(common.throwIfError),
         )(),
       logout: async () => {
-        // Logout -> send something to Cognito?
         try {
-          const accessToken = get().lastSeenToken;
-          if (accessToken) {
-            await authenticator.logout(accessToken);
+          const token = get().refreshToken;
+          if (token) {
+            await authenticator.logout(token);
           }
         } finally {
           set({
             username: "",
-            lastSeenToken: "",
+            accessToken: "",
+            refreshToken: "",
+            accessTokenExpires: 0,
           });
         }
       },
@@ -98,6 +104,12 @@ export const useUserStore = create<User>()(
     {
       name: "user",
       getStorage: () => localStorage,
+      // Don't serialize the promise
+      serialize: (state) =>
+        JSON.stringify({
+          ...state,
+          state: data.omit(state.state, "_internalTokenRefreshPromise"),
+        }),
     },
   ),
 );
@@ -107,6 +119,10 @@ const nonEmptyStringValidation = t.refinement(
   (str) => str.length > 0,
   "NonEmptyString",
 );
+const maybeNonEmptyStringValidation = t.union([
+  t.undefined,
+  nonEmptyStringValidation,
+]);
 
 const tokenContentsValidation = t.type(
   {
@@ -117,12 +133,67 @@ const tokenContentsValidation = t.type(
   "TokenContents",
 );
 
+export type AccessTokenContents = t.TypeOf<typeof tokenContentsValidation>;
+
 export interface UserLoginInput {
   username: string;
   password: string;
 }
 
-export type UserLoginOutput = Omit<
-  auth.UsernamePasswordResult,
-  "AuthenticationResult"
->;
+const setTokensToState = (
+  set: StoreApi<User>["setState"],
+  { accessToken, refreshToken }: auth.LoginResultTokens,
+) =>
+  F.pipe(
+    E.bindTo("refreshToken")(
+      maybeNonEmptyStringValidation.decode(refreshToken),
+    ),
+    E.bindW("accessToken", () => nonEmptyStringValidation.decode(accessToken)),
+    E.bindW("unvalidatedTokenContents", ({ accessToken }) =>
+      E.tryCatch(() => jwtDecode(accessToken), E.toError),
+    ),
+    E.bindW("tokenContents", ({ unvalidatedTokenContents }) =>
+      tokenContentsValidation.decode(unvalidatedTokenContents),
+    ),
+    E.map(({ tokenContents, refreshToken, accessToken }) => {
+      set({
+        username: tokenContents.username,
+        accessToken,
+        accessTokenExpires: tokenContents.exp * 1000, // Expiration time is in seconds, while Date.now() is in milliseconds.
+        ...(refreshToken ? { refreshToken } : {}),
+      });
+    }),
+  );
+
+const performTokenRefresh = (
+  get: StoreApi<User>["getState"],
+  set: StoreApi<User>["setState"],
+  refreshToken: string,
+  username: string,
+) =>
+  new Promise<string | undefined>((resolve) =>
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    setTimeout(async () => {
+      try {
+        await F.pipe(
+          authenticator.refreshTokens(refreshToken),
+          TE.chain((tokenOrMFA) =>
+            TE.fromEither(
+              tokenOrMFA.result === "tokens"
+                ? // Remember to get() username again, after spending time waiting for token from server
+                  get().username === username
+                  ? setTokensToState(set, tokenOrMFA)
+                  : E.left(new Error("Logout during refresh"))
+                : E.left(new Error("MFA response during token refresh.")),
+            ),
+          ),
+        )();
+      } catch {
+        // Just leave it.
+      } finally {
+        set({ _internalTokenRefreshPromise: undefined });
+        // Transform empty string into undefined
+        resolve(get().accessToken || undefined);
+      }
+    }, 1),
+  );

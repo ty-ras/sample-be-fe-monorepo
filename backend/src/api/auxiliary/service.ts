@@ -2,52 +2,58 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import type * as protocol from "@ty-ras/protocol";
 import * as dataBE from "@ty-ras/data-backend-io-ts";
-import type * as services from "../../services";
+import * as data from "@ty-ras/data-io-ts";
+import * as spec from "@ty-ras/endpoint-spec";
+import * as services from "../../services";
 import * as types from "./types";
 import * as state from "./state";
-import type * as t from "io-ts";
+import { function as F, taskEither as TE } from "fp-ts";
 
-export const createServiceEndpoint =
-  <
-    TValidation extends t.Mixed,
-    TFunctionality extends (...args: Array<any>) => Promise<any>,
-    TStateSpec extends object,
-  >(
-    {
-      validation,
-      functionality,
-    }: services.Service<TValidation, TFunctionality>,
-    stateSpec: TStateSpec,
-  ): SpecCreator<TFunctionality, TStateSpec> =>
-  (extractArgs, spec) =>
-    ({
-      ...spec,
-      state: state.endpointState(stateSpec),
-      output: dataBE.responseBody(validation),
-      endpointHandler: async (...args: Parameters<typeof extractArgs>) =>
-        await functionality(...extractArgs(...args)),
-    } as any);
-
-export type SpecCreator<
-  TFunctionality extends (...args: Array<any>) => Promise<any>,
-  TStateSpec extends object,
-> = <
-  TProtocolSpec extends protocol.ProtocolSpecCore<
-    string,
-    Awaited<ReturnType<TFunctionality>>
-  >,
+export const withResponseBody = <
+  TProtocolSpec extends protocol.ProtocolSpecCore<string, any>,
 >(
-  extractArgs: (
-    ...args: Parameters<
-      types.EndpointSpec<
-        TProtocolSpec,
-        TFunctionality,
-        TStateSpec
-      >["endpointHandler"]
-    >
-  ) => Parameters<TFunctionality>,
-  spec: Omit<
-    types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>,
-    "endpointHandler" | "output" | "state"
+  validation: data.Encoder<
+    data.GetRuntime<TProtocolSpec["responseBody"]>,
+    data.GetEncoded<TProtocolSpec["responseBody"]>
   >,
-) => types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>;
+): SpecCreator<TProtocolSpec> => ({
+  createEndpoint: ({ createTask }, stateSpec, apiSpec, extractArgs) => {
+    const executor = F.flow(createTask, TE.getOrElseW(services.throwIfError));
+    return {
+      ...apiSpec,
+      state: state.endpointState(stateSpec),
+      output: dataBE.responseBodyForValidatedData(validation),
+      endpointHandler: async (
+        args: spec.EndpointHandlerArgs<any, state.GetState<{ db: true }>>,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      ) => await executor(args.state.db.db, extractArgs(args as any))(),
+    } as any;
+  },
+});
+
+export interface SpecCreator<
+  TProtocolSpec extends protocol.ProtocolSpecCore<string, any>,
+> {
+  createEndpoint: <
+    TFunctionality extends types.TFunctionalityBase,
+    TStateSpec extends { db: true },
+  >(
+    functionality: TFunctionality,
+    stateSpec: TStateSpec,
+    apiSpec: Omit<
+      types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>,
+      "endpointHandler" | "output" | "state"
+    >,
+    extractArgs: (
+      args: Parameters<
+        types.EndpointSpec<
+          TProtocolSpec,
+          TFunctionality,
+          TStateSpec
+        >["endpointHandler"]
+      >[0],
+    ) => TFunctionality extends services.Service<infer TParams, infer _>
+      ? TParams
+      : never,
+  ) => types.EndpointSpec<TProtocolSpec, TFunctionality, TStateSpec>;
+}
