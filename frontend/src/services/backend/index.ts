@@ -142,6 +142,7 @@ export type APICallError = Exclude<
 
 export type NativeOrAPICallError = APICallError | Error;
 
+// TODO move to data-io-ts
 export const toEither = <T>(
   result: dataFE.APICallResult<T>,
 ): E.Either<APICallError, protocolData.RuntimeOf<T>> =>

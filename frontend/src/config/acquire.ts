@@ -3,6 +3,7 @@ import * as data from "./data";
 import * as common from "../services/common";
 import * as t from "io-ts";
 
+// TODO extract common code between FE and BE and put it to data-io-ts
 export const acquireConfigurationOrThrow = () =>
   F.pipe(
     import.meta.env[CONFIG_ENV_VAR_NAME],
