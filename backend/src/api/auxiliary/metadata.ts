@@ -3,6 +3,7 @@ import type * as protocol from "@ty-ras/protocol";
 import type * as types from "./types";
 import * as openapi from "@ty-ras/metadata-openapi";
 
+// TODO move to TyRAS libs.
 export const mdArgsBase = <TOutput>(
   output: { description: string; example: TOutput },
   operation: openapi.OpenAPIArgumentsStatic["operation"],

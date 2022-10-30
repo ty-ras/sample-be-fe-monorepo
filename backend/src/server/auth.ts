@@ -36,7 +36,7 @@ export const createNonThrowingVerifier = async (
     TE.fromEither,
     // Invoke the asynchronous method (only if right = token was non-empty string)
     TE.chain((token) =>
-      TE.tryCatch(async () => await verifier.verify(token), services.makeError),
+      TE.tryCatch(async () => await verifier.verify(token), E.toError),
     ),
     // 'Merge' both left and right
     TE.toUnion,
@@ -194,7 +194,7 @@ const explicitlyCacheJwks = (
           port,
           path: `/${userPoolId}/.well-known/jwks.json`,
         }),
-      services.makeError,
+      E.toError,
     ),
     // On success - parse JSON
     TE.map(({ data }) => parse.safeJsonParse(data ?? "")),

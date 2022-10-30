@@ -23,7 +23,7 @@ export const acquireConfigurationOrThrow = () =>
         async () =>
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
           JSON.parse(type === "JSON" ? str : await fs.readFile(str, "utf8")),
-        services.makeError,
+        E.toError,
       ),
     ),
     // Flatmap again, this time using the IO-TS validator.
