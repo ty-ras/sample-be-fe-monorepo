@@ -432,6 +432,11 @@
   resolved "https://registry.yarnpkg.com/@ty-ras/protocol/-/protocol-0.12.0.tgz#9e1165462dc4cf6b8589a5ce314953fc6e7f14fd"
   integrity sha512-w6vSHXBiint0FSmQyDwpmsxOSH70WeZHMACeELjEvGLvF3FM+kPg+i1EY+7fJvIKOEhWQQXeExc0WsKx3+oVdQ==
 
+"@ty-ras/resource-pool-fp-ts@0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/resource-pool-fp-ts/-/resource-pool-fp-ts-0.12.0.tgz#1a68979dd927e8969836a06ffa6805a103d407fd"
+  integrity sha512-29cITG9VTyBFuDSk7qbq8NSE+6FpXIhVEJE027NrUWHtE24hKrz7AnMM098PaMmN8/EHEGdskh3zcsCrBX22TQ==
+
 "@ty-ras/server-node@0.12.2":
   version "0.12.2"
   resolved "https://registry.yarnpkg.com/@ty-ras/server-node/-/server-node-0.12.2.tgz#179b2484acc8d9917698906b5b5d031105172823"
@@ -1327,10 +1332,10 @@ foreground-child@^2.0.0:
     cross-spawn "^7.0.0"
     signal-exit "^3.0.2"
 
-fp-ts@2.12.3:
-  version "2.12.3"
-  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.12.3.tgz#d991b1e8467d325dadbb6b0ab9524f773e9c3c49"
-  integrity sha512-8m0XvW8kZbfnJOA4NvSVXu95mLbPf4LQGwQyqVukIYS4KzSNJiyKSmuZUmbVHteUi6MGkAJGPb0goPZqI+Tsqg==
+fp-ts@2.13.1:
+  version "2.13.1"
+  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.13.1.tgz#1bf2b24136cca154846af16752dc29e8fa506f2a"
+  integrity sha512-0eu5ULPS2c/jsa1lGFneEFFEdTbembJv8e4QKXeVJ3lm/5hyve06dlKZrpxmMwJt6rYen7sxmHHK2CLaXvWuWQ==
 
 fs.realpath@^1.0.0:
   version "1.0.0"

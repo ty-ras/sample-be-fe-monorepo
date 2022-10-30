@@ -2,6 +2,7 @@
 import * as server from "@ty-ras/server-node";
 import * as serverGeneric from "@ty-ras/server";
 import * as data from "@ty-ras/data";
+import type * as pooling from "@ty-ras/resource-pool-fp-ts";
 import * as api from "../api";
 import type * as config from "../config";
 import * as auth from "./auth";
@@ -80,11 +81,13 @@ export const startServer = async ({
 };
 
 const runDBPoolEviction = async (
-  poolAdmin: services.ResourcePoolAdministration<services.DBClient>,
+  poolAdmin: pooling.ResourcePoolAdministration<services.DBClient>,
 ) => {
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
-    await poolAdmin.runEviction()();
+    // It is enough to check once a minute.
+    await new Promise<void>((resolve) => setTimeout(resolve, 60 * 1000));
+    // Destroy all connections which have been idle for 10min or more.
+    await poolAdmin.runEviction(10 * 60 * 1000)();
   }
 };

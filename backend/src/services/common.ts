@@ -1,7 +1,7 @@
 import * as t from "io-ts";
 import * as tyrasData from "@ty-ras/data-io-ts";
+import type * as pooling from "@ty-ras/resource-pool-fp-ts";
 import type * as db from "pg";
-import type * as pooling from "./pooling";
 import { function as F, taskEither as TE } from "fp-ts";
 
 export type DBClient = db.Client;
