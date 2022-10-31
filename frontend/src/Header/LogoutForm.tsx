@@ -1,23 +1,15 @@
 import { Button, Text } from "@chakra-ui/react";
-import { useState } from "react";
 import * as user from "../services/user";
+import * as task from "../hooks/asyncFailableTask";
 
 const LogoutForm = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const logout = user.useUserStore((state) => state.logout);
-  const wrapIsLoading = async () => {
-    try {
-      await logout();
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { taskState, invokeTask } = task.useAsyncFailableTask(() => logout());
   return (
     <Button
-      isLoading={isLoading}
+      isLoading={task.isInvoking(taskState)}
       onClick={() => {
-        setIsLoading(true);
-        void wrapIsLoading();
+        invokeTask();
       }}
     >
       <Text>Log out</Text>

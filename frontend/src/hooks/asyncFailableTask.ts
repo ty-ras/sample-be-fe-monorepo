@@ -34,32 +34,27 @@ export const useAsyncFailableTask = <E, T, TInput extends Array<any>>(
   return { taskState: state, invokeTask };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useAsyncFailableTaskCreator = <E, T, TInput extends Array<any>>(
-  createTask: (...args: TInput) => TE.TaskEither<E, T> | undefined,
-) => {
-  const [state, setState] = useState<TaskInvocationState<E, T>>(stateInitial);
-
-  const invokeTask = useCallback(
-    (...args: TInput) => {
-      if (state !== "invoking") {
-        const task = createTask(...args);
-        if (task) {
-          setState("invoking");
-          return F.pipe(
-            task,
-            TE.bimap(
-              (error) => setState({ result: "error", error }),
-              (data) => setState({ result: "success", data }),
-            ),
-          );
-        }
-      }
-    },
-    [createTask, state],
+export const useTaskStatusIndicator = (shouldShowBasedOnTaskState: boolean) => {
+  const [showState, setShowState] = useState<TaskStateIndicatorState>(
+    stateIndicatorInitial,
   );
 
-  return { taskState: state, invokeTask };
+  const isInitial = showState === stateIndicatorInitial;
+  const isAlreadyShowed = showState === stateIndicatorAlreadyShown;
+  if (isInitial && shouldShowBasedOnTaskState) {
+    setShowState(stateIndicatorShouldShow);
+  } else if (isAlreadyShowed && !shouldShowBasedOnTaskState) {
+    setShowState(stateIndicatorInitial);
+  }
+
+  return {
+    shouldShow: showState === stateIndicatorShouldShow,
+    hasShown: useCallback(() => {
+      if (showState === stateIndicatorShouldShow) {
+        setShowState(stateIndicatorAlreadyShown);
+      }
+    }, [showState]),
+  };
 };
 
 export type TaskInvocationState<E, T> =
@@ -107,3 +102,12 @@ export const logIfError = <E, T>(state: TaskInvocationState<E, T>) => {
     console.error("Task error", state.error);
   }
 };
+
+const stateIndicatorInitial = stateInitial;
+const stateIndicatorShouldShow = "should-show";
+const stateIndicatorAlreadyShown = "already-shown";
+
+type TaskStateIndicatorState =
+  | typeof stateIndicatorInitial
+  | typeof stateIndicatorShouldShow
+  | typeof stateIndicatorAlreadyShown;

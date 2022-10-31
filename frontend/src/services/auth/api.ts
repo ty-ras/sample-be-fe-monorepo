@@ -19,7 +19,7 @@ export interface Authenticator {
     password: string,
   ) => TE.TaskEither<Error, LoginResult>;
   refreshTokens: (refreshToken: string) => TE.TaskEither<Error, LoginResult>;
-  logout: (refreshToken: string) => Promise<void>;
+  logout: (refreshToken: string) => TE.TaskEither<Error, void>;
 }
 
 // TODO MFA things

@@ -60,13 +60,20 @@ export const createAuthenticator = (
       task(cognito.AuthFlowType.REFRESH_TOKEN_AUTH, {
         REFRESH_TOKEN: refreshToken,
       }),
-    logout: async (refreshToken) => {
-      await client.send(
-        new cognito.RevokeTokenCommand({
-          ClientId: clientId,
-          Token: refreshToken,
-        }),
-      );
-    },
+    logout: (refreshToken) =>
+      F.pipe(
+        TE.tryCatch(
+          async () =>
+            await client.send(
+              new cognito.RevokeTokenCommand({
+                ClientId: clientId,
+                Token: refreshToken,
+              }),
+            ),
+          E.toError,
+        ),
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        TE.map(() => {}),
+      ),
   };
 };

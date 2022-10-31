@@ -10,6 +10,7 @@ export interface Service<
   validation: TValidation;
 }
 
+// TODO move to @ty-ras/data-io-ts
 export const getErrorObject = (error: string | Error | t.Errors): Error =>
   error instanceof Error
     ? error
