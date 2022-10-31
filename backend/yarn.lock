@@ -452,6 +452,11 @@
   dependencies:
     "@ty-ras/endpoint" "0.12.3"
 
+"@ty-ras/typed-sql-io-ts@0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@ty-ras/typed-sql-io-ts/-/typed-sql-io-ts-0.12.0.tgz#88a9e99833afb9c7f6c888400bad67db11f875a4"
+  integrity sha512-fJZZwb+bZplWrHD3sO5H8rWu/F0X9zZdW70GWwAtL3d/ivL/TFtTtO1NQ65Sp642TxoqIAiwrxP5r3zoRVIe9w==
+
 "@types/istanbul-lib-coverage@^2.0.1":
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/@types/istanbul-lib-coverage/-/istanbul-lib-coverage-2.0.4.tgz#8467d4b3c087805d63580480890791277ce35c44"

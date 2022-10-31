@@ -54,7 +54,7 @@ const APIDoc = () => {
       {task.isSuccess(taskState) ? (
         <SwaggerUI spec={taskState.data} />
       ) : (
-        <Text>This should never happen.</Text>
+        <Spinner />
       )}
     </Suspense>
   );

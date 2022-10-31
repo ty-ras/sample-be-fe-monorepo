@@ -1,6 +1,6 @@
 import * as t from "io-ts";
 import * as tyrasData from "@ty-ras/data-io-ts";
-import type * as pooling from "@ty-ras/resource-pool-fp-ts";
+import * as pooling from "@ty-ras/resource-pool-fp-ts";
 import type * as db from "pg";
 import { function as F, taskEither as TE } from "fp-ts";
 
@@ -28,6 +28,19 @@ export interface Service<TParams, TReturn> {
   createTask: (pool: DBPool, arg: TParams) => TE.TaskEither<Error, TReturn>;
 }
 
+export const transformReturnType =
+  <TReturn, TValidation extends t.Mixed>(
+    transform: (retVal: TReturn) => t.TypeOf<TValidation>,
+    validation: TValidation,
+  ): (<TParams>(
+    service: Service<TParams, TReturn>,
+  ) => Service<TParams, t.TypeOf<TValidation>>) =>
+  (service) => ({
+    validation,
+    createTask: F.flow(service.createTask, TE.map(transform)),
+  });
+
+// TODO move these two functions to some generic place
 export const getErrorObject = (error: string | Error | t.Errors): Error =>
   error instanceof Error
     ? error
@@ -43,15 +56,3 @@ export const throwIfError = <T>(obj: T): Exclude<T, Error> => {
   }
   return obj as Exclude<T, Error>;
 };
-
-export const transformReturnType =
-  <TReturn, TValidation extends t.Mixed>(
-    transform: (retVal: TReturn) => t.TypeOf<TValidation>,
-    validation: TValidation,
-  ): (<TParams>(
-    service: Service<TParams, TReturn>,
-  ) => Service<TParams, t.TypeOf<TValidation>>) =>
-  (service) => ({
-    validation,
-    createTask: F.flow(service.createTask, TE.map(transform)),
-  });

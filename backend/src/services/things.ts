@@ -1,10 +1,9 @@
 import * as t from "io-ts";
 import * as common from "./common";
-import * as internal from "./internal";
 import * as data from "@ty-ras/data-io-ts";
 import { function as F } from "fp-ts";
-import * as db from "./db";
-import * as sql from "./sql";
+import * as sql from "@ty-ras/typed-sql-io-ts";
+import * as internal from "./internal";
 
 // Runtime validation for rows of 'things' table.
 const nonEmptyString = t.refinement(
@@ -42,7 +41,7 @@ export const thingValidation = t.type({
 });
 
 // Will be: "id, payload, created_at, created_by, updated_at, updated_by"
-const thingColumnListString = db.raw(
+const thingColumnListString = sql.raw(
   internal.createSQLColumnList<Thing>({
     id: undefined,
     payload: undefined,
@@ -53,11 +52,14 @@ const thingColumnListString = db.raw(
   }),
 );
 
-const idParameter = db.parameter("id")<string>();
-const idOptParameter = db.parameter("id")<string | undefined>();
-const usernameParameter = db.parameter("username")<string>();
-const payloadParameter = db.parameter("payload")<string>();
-const payloadOptParameter = db.parameter("payload")<string | undefined>();
+const idParameter = sql.parameter("id", thingID);
+const idOptParameter = sql.parameter("id", t.union([thingID, t.undefined]));
+const usernameParameter = sql.parameter("username", nonEmptyString);
+const payloadParameter = sql.parameter("payload", t.string);
+const payloadOptParameter = sql.parameter(
+  "payload",
+  t.union([t.string, t.undefined]),
+);
 
 // CRUD
 export const createThing = F.pipe(
@@ -66,15 +68,15 @@ export const createThing = F.pipe(
     id,
     payload,
   }),
-  sql.CRUDEndpoint(
-    db.executeSQLQuery`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${idOptParameter}, gen_random_uuid()), ${payloadParameter}, ${usernameParameter}) RETURNING ${thingColumnListString}`,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${idOptParameter}, gen_random_uuid()), ${payloadParameter}, ${usernameParameter}) RETURNING ${thingColumnListString}`,
     thingValidation,
   ),
 );
 export const getThing = F.pipe(
   ({ thing }: GetThingInput) => thing,
-  sql.CRUDEndpoint(
-    db.executeSQLQuery`SELECT * FROM things WHERE is_deleted IS FALSE AND id = ${idParameter}`,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`SELECT * FROM things WHERE is_deleted IS FALSE AND id = ${idParameter}`,
     thingValidation,
   ),
 );
@@ -86,10 +88,11 @@ export const updateThing = F.pipe(
     payload,
     payloadPresent: payload !== undefined,
   }),
-  sql.CRUDEndpoint(
-    db.executeSQLQuery`UPDATE things t SET updated_by = ${usernameParameter}, payload = CASE WHEN ${db.parameter(
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`UPDATE things t SET updated_by = ${usernameParameter}, payload = CASE WHEN ${sql.parameter(
       "payloadPresent",
-    )<boolean>()} IS TRUE THEN ${payloadOptParameter} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
+      t.boolean,
+    )} IS TRUE THEN ${payloadOptParameter} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
     thingValidation,
   ),
 );
@@ -99,8 +102,8 @@ export const deleteThing = F.pipe(
     username,
     ...thing,
   }),
-  sql.CRUDEndpoint(
-    db.executeSQLQuery`UPDATE things SET deleted_by = ${usernameParameter}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`UPDATE things SET deleted_by = ${usernameParameter}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
     thingValidation,
   ),
 );
@@ -110,8 +113,8 @@ export const undeleteThing = F.pipe(
     username,
     id,
   }),
-  sql.CRUDEndpoint(
-    db.executeSQLQuery`UPDATE things SET updated_by = ${usernameParameter}, is_deleted = FALSE WHERE is_deleted IS TRUE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`UPDATE things SET updated_by = ${usernameParameter}, is_deleted = FALSE WHERE is_deleted IS TRUE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
     thingValidation,
   ),
 );
@@ -120,15 +123,15 @@ export const undeleteThing = F.pipe(
 export const getThings = F.pipe(({ username }: common.AuthenticatedInput) => {
   // eslint-disable-next-line no-console
   console.info(`Things queried by "${username}".`);
-}, sql.singleQueryEndpoint(db.executeSQLQuery`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`, db.many(thingValidation)));
+}, internal.singleQueryEndpoint(sql.executeSQLQuery`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`, sql.many(thingValidation)));
 
 // Things statistics
 export const getThingsCount = F.pipe(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (_: common.UnauthenticatedInput) => {},
-  sql.singleQueryEndpoint(
-    db.executeSQLQuery`SELECT table_quick_count('things')::int AS estimate`,
-    db.one(t.type({ estimate: t.number })),
+  internal.singleQueryEndpoint(
+    sql.executeSQLQuery`SELECT table_quick_count('things')::int AS estimate`,
+    sql.one(t.type({ estimate: t.number })),
   ),
   common.transformReturnType(({ estimate }) => estimate, t.number),
 );
