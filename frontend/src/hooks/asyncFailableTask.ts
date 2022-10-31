@@ -2,6 +2,8 @@ import { function as F, taskEither as TE } from "fp-ts";
 import { useCallback, useState } from "react";
 
 // Does not allow running in parallel
+// Important: don't add returned 'invokeTask' as dependency to any hooks, as it currently changes on every render.
+// Perhaps create 'useHookableAsyncFailableTask' to handle that case?
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useAsyncFailableTask = <E, T, TInput extends Array<any>>(
   createTask: (...args: TInput) => TE.TaskEither<E, T> | undefined,

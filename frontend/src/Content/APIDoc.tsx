@@ -1,23 +1,21 @@
-import { useEffect, useState } from "react";
-import SwaggerUI from "swagger-ui-react";
+import { lazy, Suspense, useEffect } from "react";
 import "swagger-ui-react/swagger-ui.css";
 import * as user from "../services/user";
 import { callRawHTTP } from "../services/backend";
-import * as common from "../services/common";
 import * as t from "io-ts";
-import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
+import { function as F, either as E, taskEither as TE } from "fp-ts";
 import { Spinner, Text, Container } from "@chakra-ui/react";
+import * as task from "../hooks/asyncFailableTask";
+
+const SwaggerUI = lazy(() => import("swagger-ui-react"));
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 const APIDoc = () => {
   const username = user.useUserStore((user) => user.username);
   const getToken = user.useUserStore((user) => user.getTokenForAuthorization);
-  const [state, setState] = useState<undefined | FetchedData<object>>(
-    undefined,
-  );
 
-  useEffect(() => {
-    void F.pipe(
+  const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
+    F.pipe(
       TE.tryCatch(async () => await getToken(), E.toError),
       TE.chain((token) =>
         TE.tryCatch(
@@ -33,33 +31,35 @@ const APIDoc = () => {
         ),
       ),
       TE.chainW((body) => TE.fromEither(t.UnknownRecord.decode(body))),
-      TE.getOrElseW((error) => T.of(common.getErrorObject(error))),
-      T.map((data) => {
-        if (user.useUserStore.getState().username === username) {
-          setState({
-            username,
-            data,
-          });
-        }
-      }),
-    )();
-  }, [username, getToken]);
-  return typeof state === "object" ? (
-    state.data instanceof Error ? (
-      <Container>
-        <Text>Error!</Text>
-      </Container>
-    ) : (
-      <SwaggerUI spec={state.data} />
-    )
+      TE.chain((body) =>
+        user.useUserStore.getState().username === username
+          ? TE.right(body)
+          : TE.left(
+              new LogoutDuringTaskError("Logout during Swagger UI fetch"),
+            ),
+      ),
+    ),
+  );
+  useEffect(() => {
+    invokeTask();
+    // Don't depend in invokeTask as then we will be re-rendering forever
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
+  return task.isError(taskState) ? (
+    <Container>
+      <Text>Error!</Text>
+    </Container>
   ) : (
-    <Spinner />
+    <Suspense fallback={<Spinner />}>
+      {task.isSuccess(taskState) ? (
+        <SwaggerUI spec={taskState.data} />
+      ) : (
+        <Text>This should never happen.</Text>
+      )}
+    </Suspense>
   );
 };
 
 export default APIDoc;
 
-interface FetchedData<T> {
-  username: string;
-  data: T;
-}
+class LogoutDuringTaskError extends Error {}
