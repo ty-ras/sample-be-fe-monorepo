@@ -6,8 +6,9 @@
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "3.188.0",
     "@babel/core": "7.19.3",
-    "@chakra-ui/react": "2.3.6",
     "@chakra-ui/icons": "2.0.11",
+    "@chakra-ui/react": "2.3.6",
+    "@chakra-ui/system": "2.3.0",
     "@emotion/react": "11.10.4",
     "@emotion/styled": "11.10.4",
     "@ty-ras/data-frontend-io-ts": "0.12.1",
