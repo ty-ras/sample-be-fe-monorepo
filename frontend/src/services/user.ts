@@ -5,8 +5,8 @@ import * as t from "io-ts";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
 import * as auth from "./auth";
 import config from "../config";
-import * as common from "./common";
 import * as data from "@ty-ras/data";
+import * as tyras from "@ty-ras/data-io-ts";
 
 interface User {
   // These actions are immutable
@@ -82,7 +82,7 @@ export const useUserStore = create<User>()(
                   ),
                 ),
           ),
-          TE.mapLeft(common.getErrorObject),
+          TE.mapLeft(tyras.toError),
         ),
       logout: () =>
         TE.bracket(

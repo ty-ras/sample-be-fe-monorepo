@@ -11,7 +11,7 @@
     "@chakra-ui/system": "2.3.0",
     "@emotion/react": "11.10.4",
     "@emotion/styled": "11.10.4",
-    "@ty-ras/data-frontend-io-ts": "0.12.1",
+    "@ty-ras/data-frontend-io-ts": "0.12.3",
     "fp-ts": "2.13.1",
     "framer-motion": "7.6.1",
     "immer": "9.0.16",

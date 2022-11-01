@@ -1,12 +1,11 @@
 import * as t from "io-ts";
+import * as tyras from "@ty-ras/data-io-ts";
 
 export type Config = t.TypeOf<typeof config>;
 export type ConfigAuthenticationConnection = t.TypeOf<typeof connection>;
 
-const nonEmptyString = t.refinement(t.string, (str) => str.length > 0);
-
 const remoteEndpoint = t.type({
-  host: nonEmptyString,
+  host: tyras.nonEmptyString,
   port: t.Int,
 });
 
@@ -14,7 +13,7 @@ const connection = t.intersection(
   [
     t.type(
       {
-        host: nonEmptyString,
+        host: tyras.nonEmptyString,
         port: t.Int,
       },
       "AuthConfigConnectionMandatory",
@@ -35,8 +34,8 @@ export const config = t.type(
       [
         t.type(
           {
-            poolId: nonEmptyString,
-            clientId: nonEmptyString,
+            poolId: tyras.nonEmptyString,
+            clientId: tyras.nonEmptyString,
           },
           "AuthConfigMandatory",
         ),
@@ -60,7 +59,7 @@ export const config = t.type(
         ),
         cors: t.type(
           {
-            frontendAddress: nonEmptyString,
+            frontendAddress: tyras.nonEmptyString,
           },
           "HTTPCorsConfig",
         ),
@@ -70,10 +69,10 @@ export const config = t.type(
     database: t.type(
       {
         ...remoteEndpoint.props,
-        dbName: nonEmptyString,
-        username: nonEmptyString,
-        password: nonEmptyString,
-        role: nonEmptyString,
+        dbName: tyras.nonEmptyString,
+        username: tyras.nonEmptyString,
+        password: tyras.nonEmptyString,
+        role: tyras.nonEmptyString,
       },
       "DBConfig",
     ),

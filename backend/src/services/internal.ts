@@ -2,6 +2,7 @@ import * as t from "io-ts";
 import * as common from "./common";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
 import * as sql from "@ty-ras/typed-sql-io-ts";
+import * as tyras from "@ty-ras/data-io-ts";
 
 export const usingPostgresConnection: sql.SQLClientInformation<
   Error,
@@ -43,7 +44,7 @@ export const singleQueryEndpoint = <
         (client) =>
           F.pipe(
             boundQuery(client, parameterTransform(args)),
-            TE.mapLeft(common.getErrorObject),
+            TE.mapLeft(tyras.toError),
           ),
         release,
       ),

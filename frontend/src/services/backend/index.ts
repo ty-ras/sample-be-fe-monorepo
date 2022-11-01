@@ -27,7 +27,7 @@ const createBackend = () => {
     {
       method: data.plainValidator(t.literal("GET")),
       url: "/api/thing/statistics",
-      response: data.plainValidator(t.number), // data.plainValidator(t.array(datas.thing)),
+      response: data.plainValidator(t.number),
     },
   );
   const authParams = {

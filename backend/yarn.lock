@@ -350,12 +350,12 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.3.tgz#472eaab5f15c1ffdd7f8628bd4c4f753995ec79e"
   integrity sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==
 
-"@ty-ras/data-backend-io-ts@0.12.1":
-  version "0.12.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-backend-io-ts/-/data-backend-io-ts-0.12.1.tgz#1943af6fa6f462b1030f507797befddc2b6d23d3"
-  integrity sha512-qIA5rf0j1Nf4dx9HkDuqwQv5yKU8bqcRChg4s1tvT4p/lcE7CtY1buzIjU9Fq9MHl8lzXhbvivscsnMYX3KcGw==
+"@ty-ras/data-backend-io-ts@0.12.3":
+  version "0.12.3"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-backend-io-ts/-/data-backend-io-ts-0.12.3.tgz#c562f6b5c24ee19334170f48c775f79960bbd664"
+  integrity sha512-uxtA74byblMtDnCiOPzRJLBggUN4X9HC8hPTyBDMHb2wTvjwiGlO+SKb57IS+vKl9QZHDqFVzj1RB7L+nxdwYg==
   dependencies:
-    "@ty-ras/data-io-ts" "0.12.1"
+    "@ty-ras/data-io-ts" "0.12.3"
     "@ty-ras/endpoint-spec" "0.12.1"
 
 "@ty-ras/data-backend@0.12.1":
@@ -365,10 +365,10 @@
   dependencies:
     "@ty-ras/data" "0.12.3"
 
-"@ty-ras/data-io-ts@0.12.1":
-  version "0.12.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-io-ts/-/data-io-ts-0.12.1.tgz#addfce0cf436d48a6914b97c884a4d0f931f9fa2"
-  integrity sha512-1kxjvgbj8FHA5eiOZzdukQbco9gDSy3akXD08pm4sMUZXWF0vEFGe95rFm3dSIkWcFJOVclHE0vvTkoqL02BaQ==
+"@ty-ras/data-io-ts@0.12.3":
+  version "0.12.3"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-io-ts/-/data-io-ts-0.12.3.tgz#3f3fa3cc65c498faf09ce281abfd9c4156211aac"
+  integrity sha512-jKRogdvVExnbDAEb7XCxLN0vE0YDh2t6oshrgfQ686H8tqwskce3uY2JG6HggLXSW8bY+ihyqFgFi7cY0QuCJQ==
   dependencies:
     "@ty-ras/data" "0.12.3"
     "@ty-ras/protocol" "0.12.0"
@@ -399,12 +399,12 @@
   dependencies:
     "@ty-ras/data-backend" "0.12.1"
 
-"@ty-ras/metadata-jsonschema-io-ts@0.12.1":
-  version "0.12.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-jsonschema-io-ts/-/metadata-jsonschema-io-ts-0.12.1.tgz#d6c614a7c725400926045f221aacddebea3b04fa"
-  integrity sha512-u8PyfaHGxF0myUmOuwRwTisAyzGK3JQQox1VhxJrIbYJD9I+JYfVCpiFZPQaDcK7eTmQYBSSvXZcEDOEso7urA==
+"@ty-ras/metadata-jsonschema-io-ts@0.12.3":
+  version "0.12.3"
+  resolved "https://registry.yarnpkg.com/@ty-ras/metadata-jsonschema-io-ts/-/metadata-jsonschema-io-ts-0.12.3.tgz#6046e99385b397ce762e7d274a981ad2804bbc04"
+  integrity sha512-+5iMf1wJr4lmekkY3HegpHOH53MP++6YliUhkrUcdHFBywZHJvmMo3urz/Ry6vXTGUhTpaF3JxIY71Er8vJOoQ==
   dependencies:
-    "@ty-ras/data-io-ts" "0.12.1"
+    "@ty-ras/data-io-ts" "0.12.3"
     "@ty-ras/metadata-jsonschema" "0.12.1"
 
 "@ty-ras/metadata-jsonschema@0.12.1":

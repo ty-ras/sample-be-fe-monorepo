@@ -1,5 +1,4 @@
 import * as t from "io-ts";
-import * as tyrasData from "@ty-ras/data-io-ts";
 import * as pooling from "@ty-ras/resource-pool-fp-ts";
 import type * as db from "pg";
 import { function as F, taskEither as TE } from "fp-ts";
@@ -39,20 +38,3 @@ export const transformReturnType =
     validation,
     createTask: F.flow(service.createTask, TE.map(transform)),
   });
-
-// TODO move these two functions to some generic place
-export const getErrorObject = (error: string | Error | t.Errors): Error =>
-  error instanceof Error
-    ? error
-    : new Error(
-        typeof error === "string"
-          ? error
-          : tyrasData.createErrorObject(error).getHumanReadableMessage(),
-      );
-
-export const throwIfError = <T>(obj: T): Exclude<T, Error> => {
-  if (obj instanceof Error) {
-    throw obj;
-  }
-  return obj as Exclude<T, Error>;
-};

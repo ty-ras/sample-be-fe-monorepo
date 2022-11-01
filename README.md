@@ -48,6 +48,7 @@ tyras-be-and-fe-backend-1    | Server started
 ```
 
 At this point, open the browser and navigate to `http://localhost:4002` to try out the sample!
+Notice that the sample is stateless - when the docker compose project is shut down, all the data is gone from DB.
 
 # Exploring the Code
 At the heart of the sample is the [protocol specification](./protocol).
