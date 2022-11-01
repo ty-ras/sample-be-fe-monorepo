@@ -1,6 +1,6 @@
 import { Button, Text } from "@chakra-ui/react";
-import * as user from "../services/user";
-import * as task from "../hooks/asyncFailableTask";
+import * as user from "../../services/user";
+import * as task from "../../hooks/asyncFailableTask";
 
 const LogoutForm = () => {
   const logout = user.useUserStore((state) => state.logout);

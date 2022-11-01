@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect } from "react";
 import "swagger-ui-react/swagger-ui.css";
-import * as user from "../services/user";
-import { callRawHTTP } from "../services/backend";
+import * as user from "../../services/user";
+import { callRawHTTP } from "../../services/backend";
 import * as t from "io-ts";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
 import { Spinner, Text, Container } from "@chakra-ui/react";
-import * as task from "../hooks/asyncFailableTask";
+import * as task from "../../hooks/asyncFailableTask";
 
 const SwaggerUI = lazy(() => import("swagger-ui-react"));
 

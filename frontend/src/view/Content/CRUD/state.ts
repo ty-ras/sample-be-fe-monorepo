@@ -1,6 +1,6 @@
 import create from "zustand";
 import produce from "immer";
-import type * as protocol from "../../protocol";
+import type * as protocol from "../../../protocol";
 import type * as dataProtocol from "@ty-ras/protocol";
 
 export const useState = create<ThingsState>((set, get) => ({

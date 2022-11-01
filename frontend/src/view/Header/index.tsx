@@ -1,6 +1,6 @@
 import { Box, Container, Heading, Stack } from "@chakra-ui/react";
 import { lazy, Suspense } from "react";
-import * as user from "../services/user";
+import * as user from "../../services/user";
 
 const LoginForm = lazy(() => import("./LoginForm"));
 const LogoutForm = lazy(() => import("./LogoutForm"));

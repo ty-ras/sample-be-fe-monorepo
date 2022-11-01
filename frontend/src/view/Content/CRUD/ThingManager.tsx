@@ -28,13 +28,13 @@ import {
   RepeatIcon,
 } from "@chakra-ui/icons";
 import type * as proto from "@ty-ras/protocol";
-import backend, { toEither } from "../../services/backend";
+import backend, { toEither } from "../../../services/backend";
 import { useEffect, useRef, useState } from "react";
 import FocusLock from "react-focus-lock";
-import type * as protocol from "../../protocol";
+import type * as protocol from "../../../protocol";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
 import * as state from "./state";
-import * as task from "../../hooks/asyncFailableTask";
+import * as task from "../../../hooks/asyncFailableTask";
 
 const ThingManager = () => {
   const things = state.useState((s) => s.thingsByID);
