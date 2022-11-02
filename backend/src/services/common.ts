@@ -1,8 +1,7 @@
 import * as t from "io-ts";
-import * as tyrasData from "@ty-ras/data-io-ts";
+import * as pooling from "@ty-ras/resource-pool-fp-ts";
 import type * as db from "pg";
-import type * as pooling from "./pooling";
-import type { taskEither as TE } from "fp-ts";
+import { function as F, taskEither as TE } from "fp-ts";
 
 export type DBClient = db.Client;
 
@@ -28,21 +27,14 @@ export interface Service<TParams, TReturn> {
   createTask: (pool: DBPool, arg: TParams) => TE.TaskEither<Error, TReturn>;
 }
 
-export const getErrorObject = (error: string | Error | t.Errors): Error =>
-  error instanceof Error
-    ? error
-    : new Error(
-        typeof error === "string"
-          ? error
-          : tyrasData.createErrorObject(error).getHumanReadableMessage(),
-      );
-
-export const throwIfError = <T>(obj: T): Exclude<T, Error> => {
-  if (obj instanceof Error) {
-    throw obj;
-  }
-  return obj as Exclude<T, Error>;
-};
-
-export const makeError = (e: unknown) =>
-  e instanceof Error ? e : new Error(`${e}`);
+export const transformReturnType =
+  <TReturn, TValidation extends t.Mixed>(
+    transform: (retVal: TReturn) => t.TypeOf<TValidation>,
+    validation: TValidation,
+  ): (<TParams>(
+    service: Service<TParams, TReturn>,
+  ) => Service<TParams, t.TypeOf<TValidation>>) =>
+  (service) => ({
+    validation,
+    createTask: F.flow(service.createTask, TE.map(transform)),
+  });

@@ -2,16 +2,16 @@ import create, { StoreApi } from "zustand";
 import { persist } from "zustand/middleware";
 import jwtDecode from "jwt-decode";
 import * as t from "io-ts";
-import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
+import { function as F, either as E, taskEither as TE } from "fp-ts";
 import * as auth from "./auth";
 import config from "../config";
-import * as common from "./common";
 import * as data from "@ty-ras/data";
+import * as tyras from "@ty-ras/data-io-ts";
 
 interface User {
   // These actions are immutable
-  login: (input: UserLoginInput) => Promise<auth.LoginResult>;
-  logout: () => Promise<void>;
+  login: (input: UserLoginInput) => TE.TaskEither<Error, auth.LoginResult>;
+  logout: () => TE.TaskEither<Error, void>;
   // Refreshes the token if needed.
   // It must be immutable because our first load might be so that we are logged in (from persistence store), so we can't start with this field set to undefined.
   getTokenForAuthorization: () => Promise<string | undefined>;
@@ -63,8 +63,8 @@ export const useUserStore = create<User>()(
           return Promise.resolve(accessToken || undefined);
         }
       },
-      login: async (input) =>
-        await F.pipe(
+      login: (input) =>
+        F.pipe(
           // We are performing async so lift to TaskEither immediately
           TE.of(input),
           TE.chainW((input) =>
@@ -82,24 +82,37 @@ export const useUserStore = create<User>()(
                   ),
                 ),
           ),
-          TE.getOrElseW((e) => T.of(common.getErrorObject(e))),
-          T.map(common.throwIfError),
-        )(),
-      logout: async () => {
-        try {
-          const token = get().refreshToken;
-          if (token) {
-            await authenticator.logout(token);
-          }
-        } finally {
-          set({
-            username: "",
-            accessToken: "",
-            refreshToken: "",
-            accessTokenExpires: 0,
-          });
-        }
-      },
+          TE.mapLeft(tyras.toError),
+        ),
+      logout: () =>
+        TE.bracket(
+          // Our 'resource' is refresh token
+          TE.of(get().refreshToken),
+          // Use the resource: perform logout if non-empty token
+          (token) =>
+            F.pipe(
+              // Start with token
+              token,
+              // Check is it non-empty
+              TE.fromPredicate(
+                (t) => !!t,
+                () => new Error("No refresh token"),
+              ),
+              // Perform logout if it is non-empty
+              TE.chain((t) => authenticator.logout(t)),
+            ),
+          () => {
+            // Regardless what happened in body, clear authentication fields
+            set({
+              username: "",
+              accessToken: "",
+              refreshToken: "",
+              accessTokenExpires: 0,
+            });
+            // This will be ignored in any case, but is required by TE.bracket
+            return TE.of<Error, void>(undefined);
+          },
+        ),
     }),
     {
       name: "user",
@@ -187,6 +200,8 @@ const performTokenRefresh = (
                 : E.left(new Error("MFA response during token refresh.")),
             ),
           ),
+          // On any refresh error -> perform logout
+          TE.orLeft(() => get().logout()),
         )();
       } catch {
         // Just leave it.

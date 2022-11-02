@@ -1959,26 +1959,33 @@
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.6.tgz#cee20bd55e68a1720bdab363ecf0c821ded4cd45"
   integrity sha512-50/17A98tWUfQ176raKiOGXuYpLyyVMkxxG6oylzL3BPOlA6ADGdK7EYunSa4I064xerltq9TGXs8HmOk5E+vw==
 
-"@ty-ras/data-frontend-io-ts@0.12.1":
-  version "0.12.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-frontend-io-ts/-/data-frontend-io-ts-0.12.1.tgz#9e548114cef78394dff94833c37da3c74c31fdf9"
-  integrity sha512-mbQr1LPXDaHCy6XuteyQ5DMNjMtlzxwVkSoYSBRqBuU0lZ7AdVanV9hO5gNg6o922fwepRUrIZ7CwsXY0bZbYw==
+"@ty-ras/client-fetch@0.12.3":
+  version "0.12.3"
+  resolved "https://registry.yarnpkg.com/@ty-ras/client-fetch/-/client-fetch-0.12.3.tgz#3ae838d8b709d3499bac8f1aa002ccb3caff870f"
+  integrity sha512-0AvlRUmagGPnOm6lLXWVYD8sZI03jYpgFuo/nKagW/rk6wwtaUi8MzF5rs/DmzowypW8PJoobgdMwbCqeY0tWw==
   dependencies:
-    "@ty-ras/data-frontend" "0.12.1"
-    "@ty-ras/data-io-ts" "0.12.1"
+    "@ty-ras/data-frontend" "0.12.2"
 
-"@ty-ras/data-frontend@0.12.1":
-  version "0.12.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-frontend/-/data-frontend-0.12.1.tgz#756221b20ac8d847b5d3db687f4077e321b53166"
-  integrity sha512-Lsn9eeLGDM5GaRKDGrEjTSapFnl8lKxYZdah7Wpj8cwhoeOfyRMXVd0nbRXAdgqXP41vLhgcaurfMqAV8wrVTQ==
+"@ty-ras/data-frontend-io-ts@0.12.3":
+  version "0.12.3"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-frontend-io-ts/-/data-frontend-io-ts-0.12.3.tgz#7f0f1a78efc0db634d5cbb636425b779b52e0011"
+  integrity sha512-d2EVttTRdOGGFSRFriDKnFymkvGBwCW5gfWRItweDIAbSU6kfvDvYZIis+wUwSsDs2mewp81jOhbk2k5mE8zVg==
+  dependencies:
+    "@ty-ras/data-frontend" "0.12.2"
+    "@ty-ras/data-io-ts" "0.12.3"
+
+"@ty-ras/data-frontend@0.12.2":
+  version "0.12.2"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-frontend/-/data-frontend-0.12.2.tgz#0fc155bbfcb4d5bee6d9c3efba24c0df9c16ae62"
+  integrity sha512-g5fLNhoqoJ4IB4nLSMhqm3coXPLJcsEi5zR3taEmyXusvKzh/nR7uI9OWOYUlntG7pxL/XlLtpSQ8LDs5ruD2Q==
   dependencies:
     "@ty-ras/data" "0.12.3"
     "@ty-ras/protocol" "0.12.0"
 
-"@ty-ras/data-io-ts@0.12.1":
-  version "0.12.1"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-io-ts/-/data-io-ts-0.12.1.tgz#addfce0cf436d48a6914b97c884a4d0f931f9fa2"
-  integrity sha512-1kxjvgbj8FHA5eiOZzdukQbco9gDSy3akXD08pm4sMUZXWF0vEFGe95rFm3dSIkWcFJOVclHE0vvTkoqL02BaQ==
+"@ty-ras/data-io-ts@0.12.3":
+  version "0.12.3"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-io-ts/-/data-io-ts-0.12.3.tgz#3f3fa3cc65c498faf09ce281abfd9c4156211aac"
+  integrity sha512-jKRogdvVExnbDAEb7XCxLN0vE0YDh2t6oshrgfQ686H8tqwskce3uY2JG6HggLXSW8bY+ihyqFgFi7cY0QuCJQ==
   dependencies:
     "@ty-ras/data" "0.12.3"
     "@ty-ras/protocol" "0.12.0"

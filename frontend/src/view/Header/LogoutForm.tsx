@@ -1,0 +1,20 @@
+import { Button, Text } from "@chakra-ui/react";
+import * as user from "../../services/user";
+import * as task from "../../hooks/asyncFailableTask";
+
+const LogoutForm = () => {
+  const logout = user.useUserStore((state) => state.logout);
+  const { taskState, invokeTask } = task.useAsyncFailableTask(() => logout());
+  return (
+    <Button
+      isLoading={task.isInvoking(taskState)}
+      onClick={() => {
+        invokeTask();
+      }}
+    >
+      <Text>Log out</Text>
+    </Button>
+  );
+};
+
+export default LogoutForm;

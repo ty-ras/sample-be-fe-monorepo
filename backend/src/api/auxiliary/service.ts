@@ -18,7 +18,7 @@ export const withResponseBody = <
   >,
 ): SpecCreator<TProtocolSpec> => ({
   createEndpoint: ({ createTask }, stateSpec, apiSpec, extractArgs) => {
-    const executor = F.flow(createTask, TE.getOrElseW(services.throwIfError));
+    const executor = F.flow(createTask, TE.getOrElseW(data.throwOnError));
     return {
       ...apiSpec,
       state: state.endpointState(stateSpec),

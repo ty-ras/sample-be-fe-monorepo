@@ -1,7 +1,9 @@
 import { Box, Container, Heading, Stack } from "@chakra-ui/react";
-import * as user from "../services/user";
-import LoginForm from "./LoginForm";
-import LogoutForm from "./LogoutForm";
+import { lazy, Suspense } from "react";
+import * as user from "../../services/user";
+
+const LoginForm = lazy(() => import("./LoginForm"));
+const LogoutForm = lazy(() => import("./LogoutForm"));
 
 const Header = () => {
   const username = user.useUserStore((state) => state.username);
@@ -9,7 +11,9 @@ const Header = () => {
     <Box>
       <Container>
         <Heading>Hello, {username || "friend"}!</Heading>
-        <Stack spacing={3}>{username ? <LogoutForm /> : <LoginForm />}</Stack>
+        <Stack spacing={3}>
+          <Suspense>{username ? <LogoutForm /> : <LoginForm />}</Suspense>
+        </Stack>
       </Container>
     </Box>
   );

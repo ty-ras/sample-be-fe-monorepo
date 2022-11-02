@@ -72,7 +72,7 @@ export const endpointState = <TStateSpec extends object>(
               : // This was other error - perhaps DB pool creation failed? Will return 500
                 data.createErrorObject(errors);
           },
-          // In case of success, transform it into
+          // In case of success, transform it into DataValidationResponseSuccess
           (result) => ({
             error: "none" as const,
             data: result as GetState<TStateSpec>,

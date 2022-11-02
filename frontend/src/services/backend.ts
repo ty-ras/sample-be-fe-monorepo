@@ -2,14 +2,14 @@ import * as dataGeneric from "@ty-ras/data";
 import * as dataFE from "@ty-ras/data-frontend";
 import * as data from "@ty-ras/data-io-ts";
 import * as api from "@ty-ras/data-frontend-io-ts";
+import * as client from "@ty-ras/client-fetch";
 import type * as protocolData from "@ty-ras/protocol";
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 import { either as E } from "fp-ts";
-import * as client from "./client";
-import * as protocol from "../../protocol";
-import * as user from "../user";
-import config from "../../config";
+import * as protocol from "../protocol";
+import * as user from "./user";
+import config from "../config";
 
 export const callRawHTTP = client.createCallHTTPEndpoint(config.backend);
 
@@ -27,7 +27,7 @@ const createBackend = () => {
     {
       method: data.plainValidator(t.literal("GET")),
       url: "/api/thing/statistics",
-      response: data.plainValidator(t.number), // data.plainValidator(t.array(datas.thing)),
+      response: data.plainValidator(t.number),
     },
   );
   const authParams = {
@@ -142,6 +142,7 @@ export type APICallError = Exclude<
 
 export type NativeOrAPICallError = APICallError | Error;
 
+// TODO move to data-io-ts
 export const toEither = <T>(
   result: dataFE.APICallResult<T>,
 ): E.Either<APICallError, protocolData.RuntimeOf<T>> =>

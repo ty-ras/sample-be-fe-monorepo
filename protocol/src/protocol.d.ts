@@ -1,5 +1,9 @@
 import type * as protocol from "@ty-ras/protocol";
 
+// Notice that these namespaces are only for readability sake
+// Instead of prefixing endpoint interfaces with `APIThings`, we create namespace `api` which contains namespace `things`, which then contains all necessary protocol interfaces for things-related API endpoints.
+// We do similar approach for data definitions later in this same file.
+
 declare namespace api {
   namespace things {
     // CRUD for things

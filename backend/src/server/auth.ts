@@ -4,20 +4,20 @@ import * as http from "http";
 import * as t from "io-ts";
 import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
 import type * as config from "../config";
-import * as services from "../services";
+import * as tyras from "@ty-ras/data-io-ts";
 
 export const createNonThrowingVerifier = async (
   input: config.Config["authentication"],
 ) => {
   const verifier = await createVerifier(input)();
-  const checkTokenNotNull = E.fromNullable(new Error("Token is missing"));
   return F.flow(
     // Input: string token from headers (if present)
     // If it isn't present, we will shortcircuit to error right away.
     (scheme: string, token: string | undefined) =>
       F.pipe(
+        token,
         // Will be left (Error) if token is nully, and right (non-nully token itself) otherwise
-        checkTokenNotNull(token),
+        E.fromNullable(new Error("Token is missing")),
         // Validate that token string starts with given scheme (case-insensitively)
         // If it doesn't, return left (Error)
         // If it does, return right (the actual token without scheme prefix)
@@ -36,7 +36,7 @@ export const createNonThrowingVerifier = async (
     TE.fromEither,
     // Invoke the asynchronous method (only if right = token was non-empty string)
     TE.chain((token) =>
-      TE.tryCatch(async () => await verifier.verify(token), services.makeError),
+      TE.tryCatch(async () => await verifier.verify(token), E.toError),
     ),
     // 'Merge' both left and right
     TE.toUnion,
@@ -74,7 +74,7 @@ export const createVerifier = ({
     // 'Merge' both left (error) and right (verifier)
     TE.getOrElseW((error) => T.of(error)),
     // Throw if instanceof Error
-    T.map(services.throwIfError),
+    T.map(tyras.throwIfError),
   );
 
 const httpGetAsync = (opts: Omit<http.RequestOptions, "method">) =>
@@ -194,7 +194,7 @@ const explicitlyCacheJwks = (
           port,
           path: `/${userPoolId}/.well-known/jwks.json`,
         }),
-      services.makeError,
+      E.toError,
     ),
     // On success - parse JSON
     TE.map(({ data }) => parse.safeJsonParse(data ?? "")),
@@ -202,7 +202,7 @@ const explicitlyCacheJwks = (
     TE.chainW((contents) => TE.fromEither(jwksContents.decode(contents))),
     // Transform validation error of io-ts into JS Error object
     // As side-effect, cache the parsed JWKS information to verifier
-    TE.bimap(services.getErrorObject, (jwks) => {
+    TE.bimap(tyras.toError, (jwks) => {
       verifier.cacheJwks(jwks);
       return verifier;
     }),

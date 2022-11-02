@@ -1,19 +1,19 @@
 import create from "zustand";
 import produce from "immer";
-import type * as protocol from "../../protocol";
+import type * as protocol from "../../../protocol";
 import type * as dataProtocol from "@ty-ras/protocol";
 
 export const useState = create<ThingsState>((set, get) => ({
   thingsByID: undefined,
   addThing: (thing) => {
     const thingsByID = get().thingsByID;
-    const existingThing = thingsByID?.[thing.id];
+    const existingThing = thingsByID?.get(thing.id);
     const added = !existingThing;
     if (added) {
       set(
         produce<ThingsState>((draft) => {
-          const draftThings = draft.thingsByID ?? {};
-          draftThings[thing.id] = thing;
+          const draftThings = draft.thingsByID ?? new Map();
+          draftThings.set(thing.id, thing);
           draft.thingsByID = draftThings;
         }),
       );
@@ -22,14 +22,14 @@ export const useState = create<ThingsState>((set, get) => ({
   },
   removeThing: (thing) => {
     const thingsByID = get().thingsByID;
-    const existingThing = thingsByID?.[thing.id];
+    const existingThing = thingsByID?.get(thing.id);
     const removed =
       !!existingThing && existingThing.updated_at <= thing.updated_at;
     if (removed) {
       set(
         produce<ThingsState>(({ thingsByID }) => {
           if (thingsByID) {
-            delete thingsByID[thing.id];
+            thingsByID.delete(thing.id);
           }
         }),
       );
@@ -38,14 +38,14 @@ export const useState = create<ThingsState>((set, get) => ({
   },
   updateThing: (thing) => {
     const thingsByID = get().thingsByID;
-    const existingThing = thingsByID?.[thing.id];
+    const existingThing = thingsByID?.get(thing.id);
     const updated =
       !!existingThing && existingThing.updated_at <= thing.updated_at;
     if (updated) {
       set(
         produce<ThingsState>(({ thingsByID }) => {
           if (thingsByID) {
-            thingsByID[thing.id] = thing;
+            thingsByID.set(thing.id, thing);
           }
         }),
       );
@@ -53,7 +53,7 @@ export const useState = create<ThingsState>((set, get) => ({
     return updated;
   },
   resetThings: (things) => {
-    const newThingsByID = Object.fromEntries(
+    const newThingsByID = new Map(
       things.map((thing) => [thing.id, thing] as const),
     );
     set(
@@ -75,7 +75,7 @@ export const useState = create<ThingsState>((set, get) => ({
 
 export interface ThingsState {
   // properties
-  thingsByID: Readonly<Record<string, Thing>> | undefined;
+  thingsByID: Map<string, Thing> | undefined;
 
   // Immutable actions
   addThing: (thing: Thing) => boolean;
@@ -87,30 +87,32 @@ export interface ThingsState {
 export type Thing = dataProtocol.RuntimeOf<protocol.data.things.Thing>;
 
 const resetByIDDictionary = <T>(
-  newItems: Record<string, T>,
-  currentItems: Record<string, T>,
+  newItems: Map<string, T>,
+  currentItems: Map<string, T>,
   getUpdatedAt: (item: T) => Date,
 ) => {
   // Update existing, remove deleted
-  for (const [id, thing] of Object.entries(currentItems)) {
-    const newThing = newItems[id];
+  const deletableCurrentItemIDs: Array<string> = [];
+  for (const [id, thing] of currentItems) {
+    const newThing = newItems.get(id);
     if (newThing) {
       if (getUpdatedAt(newThing) > getUpdatedAt(thing)) {
-        currentItems[id] = newThing;
+        currentItems.set(id, newThing);
       }
-      delete newItems[id];
+      newItems.delete(id);
     } else {
-      delete currentItems[id];
+      deletableCurrentItemIDs.push(id);
     }
   }
+  deletableCurrentItemIDs.forEach((deletableCurrentItemID) =>
+    currentItems.delete(deletableCurrentItemID),
+  );
   // Add new
-  for (const [id, newThing] of Object.entries(newItems)) {
-    currentItems[id] = newThing;
-  }
+  newItems.forEach((newThing, id) => currentItems.set(id, newThing));
 };
 
-export const getSortedThings = (thingsByID: Record<string, Thing>) => {
-  const values = Object.values(thingsByID);
+export const getSortedThings = (thingsByID: Map<string, Thing>) => {
+  const values = Array.from(thingsByID.values());
   values.sort((x, y) => y.updated_at.valueOf() - x.updated_at.valueOf());
   return values;
 };

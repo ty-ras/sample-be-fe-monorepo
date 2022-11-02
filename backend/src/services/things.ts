@@ -1,8 +1,9 @@
 import * as t from "io-ts";
 import * as common from "./common";
-import * as internal from "./internal";
 import * as data from "@ty-ras/data-io-ts";
-import { function as F, taskEither as TE } from "fp-ts";
+import { function as F } from "fp-ts";
+import * as sql from "@ty-ras/typed-sql-io-ts";
+import * as internal from "./internal";
 
 // Runtime validation for rows of 'things' table.
 const nonEmptyString = t.refinement(
@@ -40,7 +41,7 @@ export const thingValidation = t.type({
 });
 
 // Will be: "id, payload, created_at, created_by, updated_at, updated_by"
-const thingColumnListString = internal.rawSQL(
+const thingColumnListString = sql.raw(
   internal.createSQLColumnList<Thing>({
     id: undefined,
     payload: undefined,
@@ -51,6 +52,15 @@ const thingColumnListString = internal.rawSQL(
   }),
 );
 
+const idParameter = sql.parameter("id", thingID);
+const idOptParameter = sql.parameter("id", t.union([thingID, t.undefined]));
+const usernameParameter = sql.parameter("username", nonEmptyString);
+const payloadParameter = sql.parameter("payload", t.string);
+const payloadOptParameter = sql.parameter(
+  "payload",
+  t.union([t.string, t.undefined]),
+);
+
 // CRUD
 export const createThing = F.pipe(
   ({ username, thing: { id, payload } }: CreateThingInput) => ({
@@ -58,15 +68,17 @@ export const createThing = F.pipe(
     id,
     payload,
   }),
-  internal.executeSQL`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${"id"}, gen_random_uuid()), ${"payload"}, ${"username"}) RETURNING ${thingColumnListString}`,
-  internal.singleRowQuery(thingValidation),
-  internal.usingConnectionPool,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`INSERT INTO things(id, payload, created_by) VALUES (COALESCE(${idOptParameter}, gen_random_uuid()), ${payloadParameter}, ${usernameParameter}) RETURNING ${thingColumnListString}`,
+    thingValidation,
+  ),
 );
 export const getThing = F.pipe(
   ({ thing }: GetThingInput) => thing,
-  internal.executeSQL`SELECT * FROM things WHERE is_deleted IS FALSE AND id = ${"id"}`,
-  internal.singleRowQuery(thingValidation),
-  internal.usingConnectionPool,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`SELECT * FROM things WHERE is_deleted IS FALSE AND id = ${idParameter}`,
+    thingValidation,
+  ),
 );
 
 export const updateThing = F.pipe(
@@ -76,9 +88,13 @@ export const updateThing = F.pipe(
     payload,
     payloadPresent: payload !== undefined,
   }),
-  internal.executeSQL`UPDATE things t SET updated_by = ${"username"}, payload = CASE WHEN ${"payloadPresent"} IS TRUE THEN ${"payload"} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`,
-  internal.singleRowQuery(thingValidation),
-  internal.usingConnectionPool,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`UPDATE things t SET updated_by = ${usernameParameter}, payload = CASE WHEN ${sql.parameter(
+      "payloadPresent",
+      t.boolean,
+    )} IS TRUE THEN ${payloadOptParameter} ELSE t.payload END WHERE is_deleted IS FALSE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
+    thingValidation,
+  ),
 );
 
 export const deleteThing = F.pipe(
@@ -86,9 +102,10 @@ export const deleteThing = F.pipe(
     username,
     ...thing,
   }),
-  internal.executeSQL`UPDATE things SET deleted_by = ${"username"}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${"id"} RETURNING ${thingColumnListString}`,
-  internal.singleRowQuery(thingValidation),
-  internal.usingConnectionPool,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`UPDATE things SET deleted_by = ${usernameParameter}, is_deleted = TRUE WHERE is_deleted IS FALSE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
+    thingValidation,
+  ),
 );
 
 export const undeleteThing = F.pipe(
@@ -96,49 +113,27 @@ export const undeleteThing = F.pipe(
     username,
     id,
   }),
-  internal.executeSQL`UPDATE things SET updated_by = ${"username"}, is_deleted = FALSE WHERE is_deleted IS TRUE AND id = ${"id"} RETURNING ${thingColumnListString}`,
-  internal.singleRowQuery(thingValidation),
-  internal.usingConnectionPool,
+  internal.CRUDEndpoint(
+    sql.executeSQLQuery`UPDATE things SET updated_by = ${usernameParameter}, is_deleted = FALSE WHERE is_deleted IS TRUE AND id = ${idParameter} RETURNING ${thingColumnListString}`,
+    thingValidation,
+  ),
 );
 
 // Getting more than one thing at a time
-export const getThings = F.pipe(
-  ({ username }: common.AuthenticatedInput) => {
-    // eslint-disable-next-line no-console
-    console.info(`Things queried by "${username}".`);
-  },
-  internal.executeSQL`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`,
-  internal.multiRowQuery(thingValidation),
-  // internal.queryFurther(
-  //   F.pipe(
-  //     (things: Array<t.TypeOf<typeof thingValidation>>) => ({ param: things }),
-  //     internal.executeSQL`SELECT something ${"param"}`,
-  //     internal.multiRowQuery(t.number),
-  //   ),
-  // ),
-  internal.usingConnectionPool,
-);
+export const getThings = F.pipe(({ username }: common.AuthenticatedInput) => {
+  // eslint-disable-next-line no-console
+  console.info(`Things queried by "${username}".`);
+}, internal.singleQueryEndpoint(sql.executeSQLQuery`SELECT ${thingColumnListString} FROM things WHERE is_deleted IS FALSE`, sql.many(thingValidation)));
 
 // Things statistics
 export const getThingsCount = F.pipe(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  (_: void): void => {},
-  // Notice ::int cast - by default count is BIGINT and results in string being returned instead of number
-  // Also notice: this returns also rows marked as deleted!
-  internal.executeSQL`SELECT table_quick_count('things')::int AS estimate`,
-  internal.singleRowQuery(t.type({ estimate: t.number })),
-  internal.usingConnectionPool,
-  internal.transformResult(
-    TE.map(({ estimate }) => estimate),
-    // If more than one instruction needed:
-    // (task) =>
-    //   F.pipe(
-    //     task,
-    //     TE.map(({ estimate }) => estimate),
-    //     ...etc
-    //   ),
-    t.number,
+  (_: common.UnauthenticatedInput) => {},
+  internal.singleQueryEndpoint(
+    sql.executeSQLQuery`SELECT table_quick_count('things')::int AS estimate`,
+    sql.one(t.type({ estimate: t.number })),
   ),
+  common.transformReturnType(({ estimate }) => estimate, t.number),
 );
 
 // Types

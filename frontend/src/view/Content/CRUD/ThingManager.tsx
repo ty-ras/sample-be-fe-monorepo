@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import {
   Box,
-  Button,
   Center,
   Flex,
-  FormControl,
   HStack,
   IconButton,
   Input,
@@ -12,14 +10,11 @@ import {
   InputRightElement,
   Popover,
   PopoverArrow,
-  PopoverCloseButton,
   PopoverContent,
-  PopoverHeader,
   PopoverTrigger,
   Portal,
   SimpleGrid,
   Spinner,
-  Stack,
   StackDivider,
   Text,
   Tooltip,
@@ -33,13 +28,13 @@ import {
   RepeatIcon,
 } from "@chakra-ui/icons";
 import type * as proto from "@ty-ras/protocol";
-import backend, { toEither } from "../../services/backend";
+import backend, { toEither } from "../../../services/backend";
 import { useEffect, useRef, useState } from "react";
 import FocusLock from "react-focus-lock";
-import type * as protocol from "../../protocol";
-import { function as F, task as T, either as E, taskEither as TE } from "fp-ts";
+import type * as protocol from "../../../protocol";
+import { function as F, either as E, taskEither as TE } from "fp-ts";
 import * as state from "./state";
-import * as task from "./asyncFailableTask";
+import * as task from "../../../hooks/asyncFailableTask";
 
 const ThingManager = () => {
   const things = state.useState((s) => s.thingsByID);
@@ -324,6 +319,7 @@ const Thing = ({
             aria-label={`Delete ${thing.id}`}
             isDisabled={isBusy}
             icon={<DeleteIcon />}
+            colorScheme="red"
             onClick={invokeDeleteTask}
           />
         </Tooltip>
@@ -346,25 +342,18 @@ const PropertyEditor = <E, T>({
     onValueChange: () => void;
   };
 }) => {
-  const [hasUpdated, setHasUpdated] = useState<
-    "initial" | "seenUpdate" | "timeoutCompleted"
-  >("initial");
-  if (mutableValueInfo) {
-    const newHasUpdated =
-      task.isSuccess(mutableValueInfo.updateTaskState) ||
-      task.isError(mutableValueInfo.updateTaskState);
-    if (hasUpdated === "initial" && newHasUpdated) {
-      setHasUpdated("seenUpdate");
-    } else if (hasUpdated === "timeoutCompleted" && !newHasUpdated) {
-      setHasUpdated("initial");
-    }
-  }
+  const { shouldShow: hasUpdated, hasShown: clearHasUpdated } =
+    task.useTaskStatusIndicator(
+      !!mutableValueInfo &&
+        (task.isSuccess(mutableValueInfo.updateTaskState) ||
+          task.isError(mutableValueInfo.updateTaskState)),
+    );
   const timeout = 1000;
   useEffect(() => {
     let timeoutId: number | undefined;
-    if (hasUpdated === "seenUpdate") {
+    if (hasUpdated) {
       timeoutId = window.setTimeout(() => {
-        setHasUpdated("timeoutCompleted");
+        clearHasUpdated();
       }, timeout);
     }
     return () => {
@@ -372,7 +361,7 @@ const PropertyEditor = <E, T>({
         window.clearTimeout(timeoutId);
       }
     };
-  }, [timeout, hasUpdated]);
+  }, [timeout, hasUpdated, clearHasUpdated]);
   const { hasCopied, onCopy } = useClipboard(props.value);
   return (
     <>
@@ -380,8 +369,12 @@ const PropertyEditor = <E, T>({
         {props.name}
       </Text>
       <Tooltip
-        isOpen={hasUpdated === "seenUpdate"}
-        label={"Value saved!"}
+        isOpen={hasUpdated}
+        label={
+          !!mutableValueInfo && task.isError(mutableValueInfo.updateTaskState)
+            ? "Error when saving value!"
+            : "Value saved successfully"
+        }
         placement="top"
         defaultIsOpen={false}
       >
