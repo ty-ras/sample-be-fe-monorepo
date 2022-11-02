@@ -40,6 +40,7 @@ const APIDoc = () => {
       ),
     ),
   );
+  task.logIfError(taskState);
   useEffect(() => {
     invokeTask();
     // Don't depend in invokeTask as then we will be re-rendering forever

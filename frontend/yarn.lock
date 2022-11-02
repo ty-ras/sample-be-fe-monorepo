@@ -1959,6 +1959,13 @@
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.6.tgz#cee20bd55e68a1720bdab363ecf0c821ded4cd45"
   integrity sha512-50/17A98tWUfQ176raKiOGXuYpLyyVMkxxG6oylzL3BPOlA6ADGdK7EYunSa4I064xerltq9TGXs8HmOk5E+vw==
 
+"@ty-ras/client-fetch@0.12.3":
+  version "0.12.3"
+  resolved "https://registry.yarnpkg.com/@ty-ras/client-fetch/-/client-fetch-0.12.3.tgz#3ae838d8b709d3499bac8f1aa002ccb3caff870f"
+  integrity sha512-0AvlRUmagGPnOm6lLXWVYD8sZI03jYpgFuo/nKagW/rk6wwtaUi8MzF5rs/DmzowypW8PJoobgdMwbCqeY0tWw==
+  dependencies:
+    "@ty-ras/data-frontend" "0.12.2"
+
 "@ty-ras/data-frontend-io-ts@0.12.3":
   version "0.12.3"
   resolved "https://registry.yarnpkg.com/@ty-ras/data-frontend-io-ts/-/data-frontend-io-ts-0.12.3.tgz#7f0f1a78efc0db634d5cbb636425b779b52e0011"

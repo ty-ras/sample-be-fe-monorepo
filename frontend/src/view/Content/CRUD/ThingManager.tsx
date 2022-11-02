@@ -319,6 +319,7 @@ const Thing = ({
             aria-label={`Delete ${thing.id}`}
             isDisabled={isBusy}
             icon={<DeleteIcon />}
+            colorScheme="red"
             onClick={invokeDeleteTask}
           />
         </Tooltip>
