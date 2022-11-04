@@ -1,5 +1,6 @@
 import * as t from "io-ts";
 import * as tyras from "@ty-ras/data-io-ts";
+import { function as F } from "fp-ts";
 
 const validation = t.readonly(
   t.intersection(
@@ -29,12 +30,15 @@ const validation = t.readonly(
 );
 const CONFIG_ENV_VAR_NAME = "VITE_TYRAS_FE_CONFIG";
 
-const config = tyras.readJSONStringToValueOrThrow(
-  () =>
-    new Error(
-      `Please provide FE config in ${CONFIG_ENV_VAR_NAME} environment variable as stringified JSON.`,
-    ),
-  validation,
-)(import.meta.env[CONFIG_ENV_VAR_NAME]);
+const config = F.pipe(
+  import.meta.env[CONFIG_ENV_VAR_NAME],
+  tyras.readJSONStringToValueOrThrow(
+    () =>
+      new Error(
+        `Please provide FE config in ${CONFIG_ENV_VAR_NAME} environment variable as stringified JSON.`,
+      ),
+    validation,
+  ),
+);
 
 export default config;
