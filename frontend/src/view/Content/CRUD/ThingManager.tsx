@@ -28,7 +28,8 @@ import {
   RepeatIcon,
 } from "@chakra-ui/icons";
 import type * as proto from "@ty-ras/protocol";
-import backend, { toEither } from "../../../services/backend";
+import * as data from "@ty-ras/data-frontend-io-ts";
+import backend from "../../../services/backend";
 import { useEffect, useRef, useState } from "react";
 import FocusLock from "react-focus-lock";
 import type * as protocol from "../../../protocol";
@@ -73,7 +74,7 @@ const CreateThing = () => {
           }),
         E.toError,
       ),
-      TE.chainW((d) => TE.fromEither(toEither(d))),
+      TE.chainEitherKW(data.toEither),
       TE.map(addThing),
     ),
   );
@@ -101,7 +102,7 @@ const RefreshThings = () => {
   const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
     F.pipe(
       TE.tryCatch(async () => await backend.getThings(), E.toError),
-      TE.chainW((r) => TE.fromEither(toEither(r))),
+      TE.chainEitherKW(data.toEither),
       TE.map(resetThings),
     ),
   );
@@ -143,7 +144,7 @@ const RestoreThing = () => {
           async () => backend.restoreThing({ url: { id } }),
           E.toError,
         ),
-        TE.chainW((r) => TE.fromEither(toEither(r))),
+        TE.chainEitherKW(data.toEither),
         TE.map(addThing),
       );
     }
@@ -208,7 +209,7 @@ const Thing = ({
             async () => await backend.readThing({ url: { id: thing.id } }),
             E.toError,
           ),
-          TE.chainW((r) => TE.fromEither(toEither(r))),
+          TE.chainEitherKW(data.toEither),
           TE.map(updateThing),
           TE.map(() => setIsInvalid(false)),
         );
@@ -222,7 +223,7 @@ const Thing = ({
             async () => await backend.deleteThing({ url: { id: thing.id } }),
             E.toError,
           ),
-          TE.chainW((r) => TE.fromEither(toEither(r))),
+          TE.chainEitherKW(data.toEither),
           TE.map(removeThing),
           TE.map(() => setIsInvalid(false)),
         );
@@ -240,7 +241,7 @@ const Thing = ({
               }),
             E.toError,
           ),
-          TE.chainW((r) => TE.fromEither(toEither(r))),
+          TE.chainEitherKW(data.toEither),
           TE.map(updateThing),
           TE.map(() => setIsInvalid(false)),
         );

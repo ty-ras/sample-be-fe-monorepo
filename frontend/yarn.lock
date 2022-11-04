@@ -1966,10 +1966,10 @@
   dependencies:
     "@ty-ras/data-frontend" "0.12.2"
 
-"@ty-ras/data-frontend-io-ts@0.12.3":
-  version "0.12.3"
-  resolved "https://registry.yarnpkg.com/@ty-ras/data-frontend-io-ts/-/data-frontend-io-ts-0.12.3.tgz#7f0f1a78efc0db634d5cbb636425b779b52e0011"
-  integrity sha512-d2EVttTRdOGGFSRFriDKnFymkvGBwCW5gfWRItweDIAbSU6kfvDvYZIis+wUwSsDs2mewp81jOhbk2k5mE8zVg==
+"@ty-ras/data-frontend-io-ts@0.12.4":
+  version "0.12.4"
+  resolved "https://registry.yarnpkg.com/@ty-ras/data-frontend-io-ts/-/data-frontend-io-ts-0.12.4.tgz#cc895d1e50b36e74c7ee1ca3ec9929ecf5cf112a"
+  integrity sha512-YJU/wmcervvMD1z66wlRWRUNcArEW0lujID5YMt4PHphb7PCDELCmaz1mrn0OcthWx4Dz9geDODPoUXQYaMcjg==
   dependencies:
     "@ty-ras/data-frontend" "0.12.2"
     "@ty-ras/data-io-ts" "0.12.3"
