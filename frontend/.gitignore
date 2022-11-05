@@ -2,3 +2,4 @@
 !.eslintrc.cjs
 *.log
 .env
+stats.html
