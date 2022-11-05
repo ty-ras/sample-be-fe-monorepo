@@ -4,7 +4,7 @@ import { function as F, either as E, taskEither as TE } from "fp-ts";
 import * as sql from "@ty-ras/typed-sql-io-ts";
 import * as tyras from "@ty-ras/data-io-ts";
 
-export const usingPostgresConnection: sql.SQLClientInformation<
+export const usingPostgresClient: sql.SQLClientInformation<
   Error,
   common.DBClient
 > = {
@@ -32,7 +32,7 @@ export const singleQueryEndpoint = <
   parameterTransform: (funcParams: TFunctionParameters) => TQueryParameters,
 ) => common.Service<TFunctionParameters, t.TypeOf<TValidation>>) => {
   const boundQuery = F.pipe(
-    usingPostgresConnection,
+    usingPostgresClient,
     query,
     sql.validateRows(queryValidation),
   );

@@ -6,12 +6,7 @@ import * as t from "io-ts";
 import * as tt from "io-ts-types";
 
 export const createThingsEndpoints = (builder: aux.Builder) => [
-  builder.atURL`/${"id"}`
-    .validateURLData(
-      data.url({
-        id: { decoder: thingObject.props.id, regExp: services.thingIDRegex },
-      }),
-    )
+  builder.atURL`/${thingIDInURL}`
     .batchSpec(readThing)
     .batchSpec(updateThing)
     .batchSpec(deleteThing)
@@ -46,6 +41,12 @@ const thingObject = t.type({
 //   dataGeneric.HKTEncoded,
 //   protocol.data.things.Thing
 // >
+
+const thingIDInURL = data.urlParameter(
+  "id",
+  thingObject.props.id,
+  services.thingIDRegex,
+);
 
 const exampleThing: t.TypeOf<typeof thingObject> = {
   id: "Dummy ID",
