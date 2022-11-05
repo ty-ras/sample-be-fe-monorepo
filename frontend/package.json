@@ -11,8 +11,7 @@
     "@chakra-ui/system": "2.3.0",
     "@emotion/react": "11.10.4",
     "@emotion/styled": "11.10.4",
-    "@ty-ras/data-frontend-io-ts": "0.12.5",
-    "@ty-ras/client-fetch": "0.12.3",
+    "@ty-ras/frontend-fetch-io-ts": "0.12.1",
     "fp-ts": "2.13.1",
     "framer-motion": "7.6.1",
     "immer": "9.0.16",
@@ -45,7 +44,8 @@
     "eslint-plugin-sonarjs": "0.15.0",
     "prettier": "2.7.1",
     "typescript": "4.8.4",
-    "vite": "3.1.8"
+    "vite": "3.1.8",
+    "vite-tsconfig-paths": "3.5.2"
   },
   "scripts": {
     "dev": "vite",

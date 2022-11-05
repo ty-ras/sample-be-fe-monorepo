@@ -1,5 +1,5 @@
 import * as t from "io-ts";
-import * as tyras from "@ty-ras/data-io-ts";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
 
 export type Config = t.TypeOf<typeof config>;
 export type ConfigAuthenticationConnection = t.TypeOf<typeof connection>;

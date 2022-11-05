@@ -1,8 +1,12 @@
-import { defineConfig, UserConfigExport } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig, UserConfigExport } from 'vite';
+import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 const config: UserConfigExport = {
-  plugins: [react()],
+  plugins: [
+    react(), 
+    tsconfigPaths(),
+  ],
   clearScreen: false,
 };
 
@@ -12,7 +16,7 @@ if ((process.env.TYRAS_NODEMON_ARGS?.indexOf("--legacy-watch") ?? -1) >= 0) {
   // In Windows, HRM doesn't work in Docker without this
   config.server = {
     watch: {
-      usePolling: true
+      usePolling: true,
     }
   };
 }

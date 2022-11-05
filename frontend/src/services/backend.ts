@@ -1,18 +1,14 @@
-import * as dataGeneric from "@ty-ras/data";
-import * as dataFE from "@ty-ras/data-frontend";
-import * as data from "@ty-ras/data-io-ts";
-import * as api from "@ty-ras/data-frontend-io-ts";
-import * as client from "@ty-ras/client-fetch";
+import * as tyras from "@ty-ras/frontend-fetch-io-ts";
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
-import * as protocol from "../protocol";
+import * as protocol from "protocol";
 import * as user from "./user";
-import config from "../config";
+import config from "config";
 
-export const callRawHTTP = client.createCallHTTPEndpoint(config.backend);
+export const callRawHTTP = tyras.createCallHTTPEndpoint(config.backend);
 
 const createBackend = () => {
-  const factory = api.createAPICallFactory(callRawHTTP).withHeaders({
+  const factory = tyras.createAPICallFactory(callRawHTTP).withHeaders({
     auth: async () => {
       return `Bearer ${
         (await user.useUserStore.getState().getTokenForAuthorization()) ??
@@ -23,9 +19,9 @@ const createBackend = () => {
   const getThingsStats = factory.makeAPICall<protocol.api.things.GetSummary>(
     "GET",
     {
-      method: data.plainValidator(t.literal("GET")),
+      method: tyras.plainValidator(t.literal("GET")),
       url: "/api/thing/statistics",
-      response: data.plainValidator(t.number),
+      response: tyras.plainValidator(t.number),
     },
   );
   const authParams = {
@@ -35,15 +31,15 @@ const createBackend = () => {
   } as const;
   const getThings = factory.makeAPICall<protocol.api.things.ReadAll>("GET", {
     ...authParams,
-    method: data.plainValidator(t.literal("GET")),
+    method: tyras.plainValidator(t.literal("GET")),
     url: "/api/thing",
-    response: data.plainValidator(t.array(datas.thing)),
+    response: tyras.plainValidator(t.array(datas.thing)),
   });
   const createThing = factory.makeAPICall<protocol.api.things.Create>("POST", {
     ...authParams,
-    method: data.plainValidator(t.literal("POST")),
+    method: tyras.plainValidator(t.literal("POST")),
     url: "/api/thing",
-    body: data.plainValidatorEncoder(
+    body: tyras.plainValidatorEncoder(
       t.intersection([
         t.type({
           payload: datas.thing.props.payload,
@@ -54,16 +50,16 @@ const createBackend = () => {
       ]),
       false,
     ),
-    response: data.plainValidator(datas.thing),
+    response: tyras.plainValidator(datas.thing),
   });
-  const thingSpecificURL = dataGeneric.transitiveDataValidation(
-    data.plainValidatorEncoder(
+  const thingSpecificURL = tyras.transitiveDataValidation(
+    tyras.plainValidatorEncoder(
       t.type({
         id: t.string,
       }),
       false,
     ),
-    ({ id }): dataGeneric.DataValidatorResult<string> => ({
+    ({ id }): tyras.DataValidatorResult<string> => ({
       error: "none",
       data: `/api/thing/${id}`,
     }),
@@ -72,37 +68,37 @@ const createBackend = () => {
     "DELETE",
     {
       ...authParams,
-      method: data.plainValidator(t.literal("DELETE")),
+      method: tyras.plainValidator(t.literal("DELETE")),
       url: thingSpecificURL,
-      response: data.plainValidator(datas.thing),
+      response: tyras.plainValidator(datas.thing),
     },
   );
   const restoreThing = factory.makeAPICall<protocol.api.things.Undelete>(
     "POST",
     {
       ...authParams,
-      method: data.plainValidator(t.literal("POST")),
+      method: tyras.plainValidator(t.literal("POST")),
       url: thingSpecificURL,
-      response: data.plainValidator(datas.thing),
+      response: tyras.plainValidator(datas.thing),
     },
   );
   const updateThing = factory.makeAPICall<protocol.api.things.Update>("PATCH", {
     ...authParams,
-    method: data.plainValidator(t.literal("PATCH")),
+    method: tyras.plainValidator(t.literal("PATCH")),
     url: thingSpecificURL,
-    body: data.plainValidatorEncoder(
+    body: tyras.plainValidatorEncoder(
       t.partial({
         payload: t.string,
       }),
       false,
     ),
-    response: data.plainValidator(datas.thing),
+    response: tyras.plainValidator(datas.thing),
   });
   const readThing = factory.makeAPICall<protocol.api.things.Read>("GET", {
     ...authParams,
-    method: data.plainValidator(t.literal("GET")),
+    method: tyras.plainValidator(t.literal("GET")),
     url: thingSpecificURL,
-    response: data.plainValidator(datas.thing),
+    response: tyras.plainValidator(datas.thing),
   });
   return {
     createThing,
@@ -132,10 +128,3 @@ const doThrow = (msg: string) => {
 
 const backend = createBackend();
 export default backend;
-
-export type APICallError = Exclude<
-  dataFE.APICallResult<never>,
-  dataGeneric.DataValidatorResultSuccess<never>
->;
-
-export type NativeOrAPICallError = APICallError | Error;

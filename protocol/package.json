@@ -14,7 +14,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@ty-ras/protocol": "0.12.0"
+    "@ty-ras/protocol": "0.12.1"
   },
   "devDependencies": {
     "@babel/core": "7.19.3",

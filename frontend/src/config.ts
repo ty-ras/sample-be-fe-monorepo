@@ -1,5 +1,5 @@
 import * as t from "io-ts";
-import * as tyras from "@ty-ras/data-io-ts";
+import * as tyras from "@ty-ras/frontend-fetch-io-ts";
 import { function as F } from "fp-ts";
 
 const validation = t.readonly(

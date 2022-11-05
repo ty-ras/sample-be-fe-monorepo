@@ -1,0 +1,1 @@
+This file is just a marker for scripts/install.sh script to not overwrite tsconfig.json and .eslintrc.cjs files.

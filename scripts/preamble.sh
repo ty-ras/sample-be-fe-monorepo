@@ -23,7 +23,6 @@ yarn ()
     --entrypoint yarn \
     --workdir "${TYRAS_ROOT_DIR}/${TYRAS_LIB_DIR}" \
     --env YARN_CACHE_FOLDER="${TYRAS_ROOT_DIR}/.yarn" \
-    --env NODE_PATH="${TYRAS_ROOT_DIR}/${TYRAS_LIB_DIR}/node_modules" \
     "node:${TYRAS_NODE_VERSION}" \
     "$@"
 }

@@ -1,7 +1,7 @@
 import { either as E, taskEither as TE, function as F, task as T } from "fp-ts";
 import * as process from "process";
 import * as fs from "fs/promises";
-import * as tyras from "@ty-ras/data-io-ts";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
 import * as data from "./data";
 
 export const acquireConfigurationOrThrow = () =>

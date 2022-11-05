@@ -1,9 +1,7 @@
-import type * as ep from "@ty-ras/endpoint";
-import * as data from "@ty-ras/data-io-ts";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
 import * as t from "io-ts";
 import { function as F, either as E } from "fp-ts";
-import * as d from "@ty-ras/data";
-import type * as services from "../../services";
+import type * as services from "services";
 
 export const unauthenticatedStateSpec = {
   db: true,
@@ -15,7 +13,7 @@ export const authenticatedStateSpec = {
 
 export const endpointState = <TStateSpec extends object>(
   spec: TStateSpec,
-): ep.EndpointStateValidator<
+): tyras.EndpointStateValidator<
   StateInfo<keyof TStateSpec>,
   GetState<TStateSpec>
 > => {
@@ -70,7 +68,7 @@ export const endpointState = <TStateSpec extends object>(
                   body: undefined,
                 }
               : // This was other error - perhaps DB pool creation failed? Will return 500
-                data.createErrorObject(errors);
+                tyras.createErrorObject(errors);
           },
           // In case of success, transform it into DataValidationResponseSuccess
           (result) => ({
@@ -95,10 +93,10 @@ export class Database {
 
 const fullStateValidator = t.type({
   ...authenticationStateValidator.props,
-  db: data.instanceOf(Database, "Database"),
+  db: tyras.instanceOf(Database, "Database"),
 });
 
-const AUTHENTICATION_PROPS = d.transformEntries(
+const AUTHENTICATION_PROPS = tyras.transformEntries(
   authenticationStateValidator.props,
   () => true,
 );

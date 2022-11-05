@@ -1,11 +1,11 @@
 import * as t from "io-ts";
-import * as pooling from "@ty-ras/resource-pool-fp-ts";
+import type { resources } from "@ty-ras/backend-node-io-ts-openapi";
 import type * as db from "pg";
 import { function as F, taskEither as TE } from "fp-ts";
 
 export type DBClient = db.Client;
 
-export type DBPool = pooling.ResourcePool<db.Client>;
+export type DBPool = resources.ResourcePool<db.Client>;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface UnauthenticatedInput {

@@ -11,11 +11,13 @@
     // Furthermore, because .js and .mjs files will reside in the same directory, there will be a little hassle on the mapping file names + their refs in source.
     "sourceMap": false,
     "strict": true,
+    "allowJs": false,
+    "forceConsistentCasingInFileNames": true,
     "exactOptionalPropertyTypes": false,
     // We export dist-ts folder separately, so no need to include declaration files to dist folder.
     "declaration": false,
     "noErrorTruncation": true,
-    "incremental": true,
+    "incremental": true
   },
   "ts-node": {
     "esm": true,

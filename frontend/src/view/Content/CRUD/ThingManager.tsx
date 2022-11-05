@@ -27,15 +27,14 @@ import {
   RepeatClockIcon,
   RepeatIcon,
 } from "@chakra-ui/icons";
-import type * as proto from "@ty-ras/protocol";
-import * as data from "@ty-ras/data-frontend-io-ts";
-import backend from "../../../services/backend";
+import * as tyras from "@ty-ras/frontend-fetch-io-ts";
 import { useEffect, useRef, useState } from "react";
 import FocusLock from "react-focus-lock";
-import type * as protocol from "../../../protocol";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
+import type * as protocol from "protocol";
+import backend from "services/backend";
+import * as task from "hooks/asyncFailableTask";
 import * as state from "./state";
-import * as task from "../../../hooks/asyncFailableTask";
 
 const ThingManager = () => {
   const things = state.useState((s) => s.thingsByID);
@@ -74,7 +73,7 @@ const CreateThing = () => {
           }),
         E.toError,
       ),
-      TE.chainEitherKW(data.toEither),
+      TE.chainEitherKW(tyras.toEither),
       TE.map(addThing),
     ),
   );
@@ -102,7 +101,7 @@ const RefreshThings = () => {
   const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
     F.pipe(
       TE.tryCatch(async () => await backend.getThings(), E.toError),
-      TE.chainEitherKW(data.toEither),
+      TE.chainEitherKW(tyras.toEither),
       TE.map(resetThings),
     ),
   );
@@ -144,7 +143,7 @@ const RestoreThing = () => {
           async () => backend.restoreThing({ url: { id } }),
           E.toError,
         ),
-        TE.chainEitherKW(data.toEither),
+        TE.chainEitherKW(tyras.toEither),
         TE.map(addThing),
       );
     }
@@ -197,7 +196,7 @@ const RestoreThing = () => {
 const Thing = ({
   thing,
 }: {
-  thing: proto.RuntimeOf<protocol.data.things.Thing>;
+  thing: tyras.RuntimeOf<protocol.data.things.Thing>;
 }) => {
   const removeThing = state.useState((s) => s.removeThing);
   const updateThing = state.useState((s) => s.updateThing);
@@ -209,7 +208,7 @@ const Thing = ({
             async () => await backend.readThing({ url: { id: thing.id } }),
             E.toError,
           ),
-          TE.chainEitherKW(data.toEither),
+          TE.chainEitherKW(tyras.toEither),
           TE.map(updateThing),
           TE.map(() => setIsInvalid(false)),
         );
@@ -223,7 +222,7 @@ const Thing = ({
             async () => await backend.deleteThing({ url: { id: thing.id } }),
             E.toError,
           ),
-          TE.chainEitherKW(data.toEither),
+          TE.chainEitherKW(tyras.toEither),
           TE.map(removeThing),
           TE.map(() => setIsInvalid(false)),
         );
@@ -241,7 +240,7 @@ const Thing = ({
               }),
             E.toError,
           ),
-          TE.chainEitherKW(data.toEither),
+          TE.chainEitherKW(tyras.toEither),
           TE.map(updateThing),
           TE.map(() => setIsInvalid(false)),
         );

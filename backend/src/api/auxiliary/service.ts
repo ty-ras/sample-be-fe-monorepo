@@ -1,30 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import type * as protocol from "@ty-ras/protocol";
-import * as dataBE from "@ty-ras/data-backend-io-ts";
-import * as data from "@ty-ras/data-io-ts";
-import * as spec from "@ty-ras/endpoint-spec";
-import * as services from "../../services";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
+import * as services from "services";
 import * as types from "./types";
 import * as state from "./state";
 import { function as F, taskEither as TE } from "fp-ts";
 
 export const withResponseBody = <
-  TProtocolSpec extends protocol.ProtocolSpecCore<string, any>,
+  TProtocolSpec extends tyras.ProtocolSpecCore<string, any>,
 >(
-  validation: data.Encoder<
-    data.GetRuntime<TProtocolSpec["responseBody"]>,
-    data.GetEncoded<TProtocolSpec["responseBody"]>
+  validation: tyras.Encoder<
+    tyras.GetRuntime<TProtocolSpec["responseBody"]>,
+    tyras.GetEncoded<TProtocolSpec["responseBody"]>
   >,
 ): SpecCreator<TProtocolSpec> => ({
   createEndpoint: ({ createTask }, stateSpec, apiSpec, extractArgs) => {
-    const executor = F.flow(createTask, TE.getOrElseW(data.throwOnError));
+    const executor = F.flow(createTask, TE.getOrElseW(tyras.throwOnError));
     return {
       ...apiSpec,
       state: state.endpointState(stateSpec),
-      output: dataBE.responseBodyForValidatedData(validation),
+      output: tyras.responseBodyForValidatedData(validation),
       endpointHandler: async (
-        args: spec.EndpointHandlerArgs<any, state.GetState<{ db: true }>>,
+        args: tyras.EndpointHandlerArgs<any, state.GetState<{ db: true }>>,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       ) => await executor(args.state.db.db, extractArgs(args as any))(),
     } as any;
@@ -32,7 +29,7 @@ export const withResponseBody = <
 });
 
 export interface SpecCreator<
-  TProtocolSpec extends protocol.ProtocolSpecCore<string, any>,
+  TProtocolSpec extends tyras.ProtocolSpecCore<string, any>,
 > {
   createEndpoint: <
     TFunctionality extends types.TFunctionalityBase,
