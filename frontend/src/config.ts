@@ -33,11 +33,11 @@ const CONFIG_ENV_VAR_NAME = "VITE_TYRAS_FE_CONFIG";
 const config = F.pipe(
   import.meta.env[CONFIG_ENV_VAR_NAME],
   tyras.readJSONStringToValueOrThrow(
+    validation,
     () =>
       new Error(
         `Please provide FE config in ${CONFIG_ENV_VAR_NAME} environment variable as stringified JSON.`,
       ),
-    validation,
   ),
 );
 
