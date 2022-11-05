@@ -2,4 +2,4 @@
 
 . 'scripts/preamble.sh'
 
-. 'scripts/install-impl.sh'
+. 'scripts/native-install.sh'

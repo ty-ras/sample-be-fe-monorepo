@@ -8,6 +8,3 @@ coverage
 */tsconfig*.json
 */src/protocol.d.ts
 !protocol/src/protocol.d.ts
-# FE is a bit special
-!frontend/tsconfig*.json
-!frontend/.eslintrc*.cjs

@@ -2,9 +2,14 @@
 
 yarn install "$@"
 
-if [ "$(echo "${TYRAS_LIB_DIR}" | cut -c1-8)" != 'frontend' ]; then
-  # Frontend is special and has its own ESLint and TS configs.
-  cp .eslintrc.library.cjs "${TYRAS_LIB_DIR}/.eslintrc.cjs"
-  cp tsconfig.library.json "${TYRAS_LIB_DIR}/tsconfig.json"
-  cp tsconfig.build.json "${TYRAS_LIB_DIR}"
+if [ -f "${TYRAS_LIB_DIR}/config.own" ]; then
+  TYRAS_LIB_TSCONFIG_NAME='tsconfig.library.json'
+  TYRAS_LIB_ESLINTRC_NAME='.eslintrc.library.cjs'
+else
+  TYRAS_LIB_TSCONFIG_NAME='tsconfig.json'
+  TYRAS_LIB_ESLINTRC_NAME='.eslintrc.cjs'
 fi
+
+cp .eslintrc.library.cjs "${TYRAS_LIB_DIR}/${TYRAS_LIB_ESLINTRC_NAME}"
+cp tsconfig.library.json "${TYRAS_LIB_DIR}/${TYRAS_LIB_TSCONFIG_NAME}"
+cp tsconfig.build.json "${TYRAS_LIB_DIR}"

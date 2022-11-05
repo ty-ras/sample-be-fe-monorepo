@@ -101,6 +101,7 @@ const stateInvoking = "invoking";
 
 export const logIfError = <E, T>(state: TaskInvocationState<E, T>) => {
   if (isError(state)) {
+    // eslint-disable-next-line no-console
     console.error("Task error", state.error);
   }
 };

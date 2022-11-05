@@ -1,2 +1,2 @@
 src/package.json
-!tsconfig.dev-run.json
+!tsconfig.cjs.json
