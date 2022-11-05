@@ -16,7 +16,7 @@ if ((process.env.TYRAS_NODEMON_ARGS?.indexOf("--legacy-watch") ?? -1) >= 0) {
   // In Windows, HRM doesn't work in Docker without this
   config.server = {
     watch: {
-      usePolling: true
+      usePolling: true,
     }
   };
 }
