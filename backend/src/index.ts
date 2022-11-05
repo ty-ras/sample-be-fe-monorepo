@@ -1,8 +1,8 @@
-import * as config from "./config";
-import * as serverr from "./server";
+import * as config from "config";
+import * as server from "server";
 
 const main = async () => {
-  await serverr.startServer(await config.acquireConfigurationOrThrow());
+  await server.startServer(await config.acquireConfigurationOrThrow());
   // eslint-disable-next-line no-console
   console.info("Server started");
 };

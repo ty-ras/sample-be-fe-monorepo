@@ -1,7 +1,7 @@
 import create from "zustand";
 import produce from "immer";
-import type * as protocol from "../../../protocol";
-import type * as dataProtocol from "@ty-ras/protocol";
+import type * as protocol from "protocol";
+import type * as tyras from "@ty-ras/frontend-fetch-io-ts";
 
 export const useState = create<ThingsState>((set, get) => ({
   thingsByID: undefined,
@@ -84,7 +84,7 @@ export interface ThingsState {
   resetThings: (things: ReadonlyArray<Readonly<Thing>>) => void;
 }
 
-export type Thing = dataProtocol.RuntimeOf<protocol.data.things.Thing>;
+export type Thing = tyras.RuntimeOf<protocol.data.things.Thing>;
 
 const resetByIDDictionary = <T>(
   newItems: Map<string, T>,

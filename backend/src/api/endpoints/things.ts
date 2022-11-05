@@ -1,7 +1,7 @@
-import * as protocol from "../../protocol";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
+import * as protocol from "protocol";
 import * as aux from "../auxiliary";
-import * as services from "../../services";
-import * as data from "@ty-ras/data-backend-io-ts";
+import * as services from "services";
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 
@@ -42,7 +42,7 @@ const thingObject = t.type({
 //   protocol.data.things.Thing
 // >
 
-const thingIDInURL = data.urlParameter(
+const thingIDInURL = tyras.urlParameter(
   "id",
   thingObject.props.id,
   services.thingIDRegex,
@@ -64,7 +64,7 @@ const createThing = aux
     aux.authenticatedStateSpec,
     {
       method: "POST",
-      input: data.requestBody(t.type({ payload: t.string })),
+      input: tyras.requestBody(t.type({ payload: t.string })),
       mdArgs: {
         openapi: {
           ...aux.mdArgsBase(
@@ -117,7 +117,7 @@ const updateThing = aux
     aux.authenticatedStateSpec,
     {
       method: "PATCH",
-      input: data.requestBody(
+      input: tyras.requestBody(
         t.partial({
           payload: t.string,
         }),

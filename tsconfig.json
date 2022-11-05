@@ -15,7 +15,7 @@
     // We export dist-ts folder separately, so no need to include declaration files to dist folder.
     "declaration": false,
     "noErrorTruncation": true,
-    "incremental": true,
+    "incremental": true
   },
   "ts-node": {
     "esm": true,

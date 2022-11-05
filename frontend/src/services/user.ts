@@ -1,12 +1,11 @@
 import create, { StoreApi } from "zustand";
 import { persist } from "zustand/middleware";
 import jwtDecode from "jwt-decode";
+import * as tyras from "@ty-ras/frontend-fetch-io-ts";
 import * as t from "io-ts";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
 import * as auth from "./auth";
 import config from "../config";
-import * as data from "@ty-ras/data";
-import * as tyras from "@ty-ras/data-io-ts";
 
 interface User {
   // These actions are immutable
@@ -121,7 +120,7 @@ export const useUserStore = create<User>()(
       serialize: (state) =>
         JSON.stringify({
           ...state,
-          state: data.omit(state.state, "_internalTokenRefreshPromise"),
+          state: tyras.omit(state.state, "_internalTokenRefreshPromise"),
         }),
     },
   ),

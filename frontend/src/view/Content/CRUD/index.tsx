@@ -1,6 +1,6 @@
 import { Code, Container, Heading, Text } from "@chakra-ui/react";
 import { lazy, Suspense } from "react";
-import * as user from "../../../services/user";
+import * as user from "services/user";
 
 const ThingManager = lazy(() => import("./ThingManager"));
 

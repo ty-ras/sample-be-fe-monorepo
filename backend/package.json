@@ -14,12 +14,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@ty-ras/server-node": "0.12.5",
-    "@ty-ras/data-backend-io-ts": "0.12.4",
-    "@ty-ras/metadata-jsonschema-io-ts": "0.12.4",
-    "@ty-ras/metadata-openapi": "0.12.3",
-    "@ty-ras/resource-pool-fp-ts": "0.12.0",
-    "@ty-ras/typed-sql-io-ts": "0.12.0",
+    "@ty-ras/backend-node-io-ts-openapi": "0.12.1",
     "aws-jwt-verify": "3.1.0",
     "fp-ts": "2.13.1",
     "io-ts": "2.2.19",
@@ -52,7 +47,7 @@
     "build:run": "yarn run lint && yarn run tsc",
     "build:ci": "yarn run tsc",
     "lint": "eslint ./src --ext .ts,.tsx",
-    "run-server": "ts-node src",
+    "run-server": "ts-node --project tsconfig.dev-run.json src",
     "tsc": "tsc --project tsconfig.build.json",
     "test:coverage": "echo TODO tests",
     "test:run": "echo TODO tests"

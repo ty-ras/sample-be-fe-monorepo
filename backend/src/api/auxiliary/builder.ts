@@ -1,13 +1,9 @@
-import * as spec from "@ty-ras/endpoint-spec";
-import * as server from "@ty-ras/server-node";
-import * as openapi from "@ty-ras/metadata-openapi";
-import * as jsonSchema from "@ty-ras/metadata-jsonschema-io-ts";
-import * as dataBE from "@ty-ras/data-backend-io-ts";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
 import * as state from "./state";
 
 export const createBuilders = () => {
-  const noMetadata = spec.startBuildingAPI<
-    server.ServerContext,
+  const noMetadata = tyras.startBuildingAPI<
+    tyras.ServerContext,
     state.StateInfo
   >();
 
@@ -18,10 +14,10 @@ export const createBuilders = () => {
     // Builder which requires metadata, with or without authentication
     withOpenAPI: noMetadata.withMetadataProvider(
       "openapi",
-      openapi.createOpenAPIProvider(
-        jsonSchema.createJsonSchemaFunctionality({
-          contentTypes: [dataBE.CONTENT_TYPE],
-          transformSchema: openapi.convertToOpenAPISchemaObject,
+      tyras.createOpenAPIProvider(
+        tyras.createJsonSchemaFunctionality({
+          contentTypes: [tyras.CONTENT_TYPE],
+          transformSchema: tyras.convertToOpenAPISchemaObject,
         }),
       ),
       (requiredProperties) => {

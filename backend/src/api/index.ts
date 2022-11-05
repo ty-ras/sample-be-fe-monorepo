@@ -1,4 +1,4 @@
-import * as prefix from "@ty-ras/endpoint-prefix";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
 import * as aux from "./auxiliary";
 import * as endpoints from "./endpoints";
 
@@ -36,10 +36,10 @@ export const createEndpoints = () => {
   // Return endpoints
   return [
     // Behind '/api' prefix, we have
-    prefix.atPrefix(
+    tyras.atPrefix(
       topLevelAPIPrefix,
       // All things endpoints under '/thing' prefix
-      prefix.atPrefix(
+      tyras.atPrefix(
         thingsAPIPrefix,
         ...thingsEndpointsAndMD.map(({ endpoint }) => endpoint),
       ),

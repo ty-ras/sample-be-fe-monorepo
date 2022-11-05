@@ -57,6 +57,17 @@ services:
         cd /tyras/nodemon/protocol
         nodemon ${TYRAS_NODEMON_ARGS} &
         cd ../code
+        # This is horrible hack, but I couldn't make it work any other way with TS-Node.
+        # The problem is while TS-Node itself supports ESM modules, it does not support baseUrl:
+        # https://typestrong.org/ts-node/docs/paths/
+        # There is 'tsconfig-paths' package for that, unfortunately, it does not work well with ESM:
+        # https://github.com/TypeStrong/ts-node/issues/1375#issuecomment-866751326
+        # There is PR mentioned in https://github.com/dividab/tsconfig-paths/issues/122 which is supposed to add baseUrl support to ts-node.
+        # However, it's been opened for over 1yr without much activity:
+        # https://github.com/TypeStrong/ts-node/pull/1585
+        # Therefore, we must fallback to other option: use CJS.
+        # For that, we must use package.json without "type": "module" + custom tsconfig.
+        cat '/tyras/code/package.json' | jq -M 'del(.type)' > '/tyras/code/src/package.json'
         nodemon ${TYRAS_NODEMON_ARGS}
     networks:
       be-nw:

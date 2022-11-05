@@ -3,8 +3,8 @@ import * as parse from "aws-jwt-verify/safe-json-parse";
 import * as http from "http";
 import * as t from "io-ts";
 import { function as F, either as E, task as T, taskEither as TE } from "fp-ts";
-import type * as config from "../config";
-import * as tyras from "@ty-ras/data-io-ts";
+import type * as config from "config";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
 
 export const createNonThrowingVerifier = async (
   input: config.Config["authentication"],

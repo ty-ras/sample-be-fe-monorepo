@@ -1,8 +1,8 @@
 import * as t from "io-ts";
-import * as common from "./common";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
-import * as sql from "@ty-ras/typed-sql-io-ts";
-import * as tyras from "@ty-ras/data-io-ts";
+import { sql } from "@ty-ras/backend-node-io-ts-openapi";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
+import * as common from "./common";
 
 export const usingPostgresClient: sql.SQLClientInformation<
   Error,

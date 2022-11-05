@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // tsconfig-paths does not work with ESM + baseUrl combo.
+    // Fallback to CJS to make ts-node run this project.
+    "module": "CommonJS"
+  },
+  "ts-node": {
+    // This require must be in the file which resides in this folder, because file node_modules/ts-node/dist/configuration.js, line 157:
+    // "// Modules are found relative to the tsconfig file, not the `dir` option"
+    "require": [
+      "tsconfig-paths/register"
+    ]
+  }
+}

@@ -1,7 +1,6 @@
 import * as aux from "../auxiliary";
 import { OpenAPIV3 as openapi } from "openapi-types";
-import * as data from "@ty-ras/data-backend-io-ts";
-import * as md from "@ty-ras/metadata-openapi";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
 import * as t from "io-ts";
 import * as tls from "tls";
 
@@ -10,7 +9,7 @@ export const createOpenAPIEndpoint = (
   metadata: openapi.Document,
 ) => {
   // Notice that this will be undefined if all operations are behind authentication
-  const unauthenticatedMD = md.removeAuthenticatedOperations(metadata);
+  const unauthenticatedMD = tyras.removeAuthenticatedOperations(metadata);
   return builder.atURL`/openapi`
     .forMethod("GET", aux.endpointState({ username: false }))
     .withoutBody(
@@ -31,7 +30,7 @@ export const createOpenAPIEndpoint = (
         return returnMD;
       },
       // Proper validator for OpenAPI objects is out of scope of this sample
-      data.responseBodyForValidatedData(t.unknown),
+      tyras.responseBodyForValidatedData(t.unknown),
       // No metadata - as this is the metadata-returning endpoint itself
       {},
     )

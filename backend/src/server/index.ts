@@ -1,14 +1,12 @@
 /* eslint-disable no-console */
-import * as server from "@ty-ras/server-node";
-import * as serverGeneric from "@ty-ras/server";
-import * as data from "@ty-ras/data";
-import type * as pooling from "@ty-ras/resource-pool-fp-ts";
-import * as api from "../api";
-import type * as config from "../config";
+import * as tyras from "@ty-ras/backend-node-io-ts-openapi";
+import type { resources } from "@ty-ras/backend-node-io-ts-openapi";
+import { function as F } from "fp-ts";
+import * as api from "api";
+import * as services from "services";
+import type * as config from "config";
 import * as auth from "./auth";
 import * as db from "./db";
-import * as services from "../services";
-import { function as F } from "fp-ts";
 
 export const startServer = async ({
   authentication,
@@ -18,13 +16,13 @@ export const startServer = async ({
   const verifier = await auth.createNonThrowingVerifier(authentication);
   const { pool, administration } = db.createDBPool(database);
   const dbPool = new api.Database(pool);
-  const corsHandler = server.createCORSHandler({
+  const corsHandler = tyras.createCORSHandler({
     allowOrigin: cors.frontendAddress,
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: true,
   });
-  await serverGeneric.listenAsync(
-    server.createServer({
+  await tyras.listenAsync(
+    tyras.createServer({
       // Endpoints comprise the REST API as a whole
       endpoints: api.createEndpoints(),
       // React on various server events.
@@ -42,7 +40,7 @@ export const startServer = async ({
             eventName,
             corsTriggered,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            data.omit(eventArgs, "ctx", "groups" as any, "regExp"),
+            tyras.omit(eventArgs, "ctx", "groups" as any, "regExp"),
           ),
       ),
       // Create the state object for endpoints
@@ -81,7 +79,7 @@ export const startServer = async ({
 };
 
 const runDBPoolEviction = async (
-  poolAdmin: pooling.ResourcePoolAdministration<services.DBClient>,
+  poolAdmin: resources.ResourcePoolAdministration<services.DBClient>,
 ) => {
   // eslint-disable-next-line no-constant-condition
   while (true) {

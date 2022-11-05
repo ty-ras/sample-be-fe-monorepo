@@ -1,8 +1,12 @@
-import { defineConfig, UserConfigExport } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig, UserConfigExport } from 'vite';
+import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 const config: UserConfigExport = {
-  plugins: [react()],
+  plugins: [
+    react(), 
+    tsconfigPaths(),
+  ],
   clearScreen: false,
 };
 

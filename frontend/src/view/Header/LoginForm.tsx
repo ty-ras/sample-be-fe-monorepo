@@ -7,8 +7,8 @@ import {
   Tooltip,
 } from "@chakra-ui/react";
 import { ChangeEvent, useState } from "react";
-import * as user from "../../services/user";
-import * as task from "../../hooks/asyncFailableTask";
+import * as user from "services/user";
+import * as task from "hooks/asyncFailableTask";
 import { LockIcon } from "@chakra-ui/icons";
 
 const LoginForm = () => {
