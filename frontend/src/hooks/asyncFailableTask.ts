@@ -1,13 +1,21 @@
 import { function as F, taskEither as TE } from "fp-ts";
 import { useCallback, useState } from "react";
 
-// Does not allow running in parallel
-// Important: don't add returned 'invokeTask' as dependency to any hooks, as it currently changes on every render.
-// Perhaps create 'useHookableAsyncFailableTask' to handle that case?
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any*/
+/**
+ * Creates a invocation callback and task state tracking for a callback producing `TaskEither`, which typically performs some asynchronous, failable action.
+ * The invocation callback will take care of not executing the task in parallel, but instead simply return if the task is already running.
+ *
+ * IMPORTANT!
+ * Please pass result of `useCallback` as a parameter to this function!
+ * Otherwise, the `invokeTask` of returned object will constantly change!
+ * @param createTask The callback which creates the task, or returns `undefined`. **Should be result of `useCallback` call**.
+ * @returns Object with task invocation callback, as well as current task state information.
+ */
 export const useAsyncFailableTask = <E, T, TInput extends Array<any>>(
   createTask: (...args: TInput) => TE.TaskEither<E, T> | undefined,
 ) => {
+  /* eslint-enable @typescript-eslint/no-explicit-any*/
   const [state, setState] = useState<TaskInvocationState<E, T>>(stateInitial);
 
   const invokeTask = useCallback(

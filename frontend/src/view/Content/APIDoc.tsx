@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useCallback, useEffect } from "react";
 import "swagger-ui-react/swagger-ui.css";
 import * as t from "io-ts";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
@@ -14,30 +14,34 @@ const APIDoc = () => {
   const username = user.useUserStore((user) => user.username);
   const getToken = user.useUserStore((user) => user.getTokenForAuthorization);
 
-  const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
-    F.pipe(
-      TE.tryCatch(async () => await getToken(), E.toError),
-      TE.chain((token) =>
-        TE.tryCatch(
-          async () =>
-            (
-              await callRawHTTP({
-                method: "GET",
-                url: "/openapi",
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-              })
-            ).body,
-          E.toError,
-        ),
-      ),
-      TE.chainW((body) => TE.fromEither(t.UnknownRecord.decode(body))),
-      TE.chain((body) =>
-        user.useUserStore.getState().username === username
-          ? TE.right(body)
-          : TE.left(
-              new LogoutDuringTaskError("Logout during Swagger UI fetch"),
+  const { taskState, invokeTask } = task.useAsyncFailableTask(
+    useCallback(
+      () =>
+        F.pipe(
+          TE.tryCatch(async () => await getToken(), E.toError),
+          TE.chain((token) =>
+            TE.tryCatch(
+              async () =>
+                (
+                  await callRawHTTP({
+                    method: "GET",
+                    url: "/openapi",
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                  })
+                ).body,
+              E.toError,
             ),
-      ),
+          ),
+          TE.chainW((body) => TE.fromEither(t.UnknownRecord.decode(body))),
+          TE.chain((body) =>
+            user.useUserStore.getState().username === username
+              ? TE.right(body)
+              : TE.left(
+                  new LogoutDuringTaskError("Logout during Swagger UI fetch"),
+                ),
+          ),
+        ),
+      [username, getToken],
     ),
   );
   task.logIfError(taskState);
