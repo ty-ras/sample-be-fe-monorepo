@@ -6,7 +6,7 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState, useCallback } from "react";
 import * as user from "services/user";
 import * as task from "hooks/asyncFailableTask";
 import { LockIcon } from "@chakra-ui/icons";
@@ -20,11 +20,13 @@ const LoginForm = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const canLogIn = !!username && !!password;
-  const { taskState, invokeTask } = task.useAsyncFailableTask(() => {
-    if (canLogIn) {
-      return login({ username, password });
-    }
-  });
+  const { taskState, invokeTask } = task.useAsyncFailableTask(
+    useCallback(() => {
+      if (canLogIn) {
+        return login({ username, password });
+      }
+    }, [username, password, canLogIn, login]),
+  );
   const { shouldShow: isInvalid, hasShown: clearInvalid } =
     task.useTaskStatusIndicator(task.isError(taskState));
 

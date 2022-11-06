@@ -28,7 +28,7 @@ import {
   RepeatIcon,
 } from "@chakra-ui/icons";
 import * as tyras from "@ty-ras/frontend-fetch-io-ts";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import FocusLock from "react-focus-lock";
 import { function as F, either as E, taskEither as TE } from "fp-ts";
 import type * as protocol from "protocol";
@@ -64,17 +64,21 @@ const ThingManager = () => {
 
 const CreateThing = () => {
   const addThing = state.useState((s) => s.addThing);
-  const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
-    F.pipe(
-      TE.tryCatch(
-        async () =>
-          await backend.createThing({
-            body: { payload: "" },
-          }),
-        E.toError,
-      ),
-      TE.chainEitherKW(tyras.toEither),
-      TE.map(addThing),
+  const { taskState, invokeTask } = task.useAsyncFailableTask(
+    useCallback(
+      () =>
+        F.pipe(
+          TE.tryCatch(
+            async () =>
+              await backend.createThing({
+                body: { payload: "" },
+              }),
+            E.toError,
+          ),
+          TE.chainEitherKW(tyras.toEither),
+          TE.map(addThing),
+        ),
+      [addThing],
     ),
   );
   task.logIfError(taskState);
@@ -98,11 +102,15 @@ const CreateThing = () => {
 
 const RefreshThings = () => {
   const resetThings = state.useState((s) => s.resetThings);
-  const { taskState, invokeTask } = task.useAsyncFailableTask(() =>
-    F.pipe(
-      TE.tryCatch(async () => await backend.getThings(), E.toError),
-      TE.chainEitherKW(tyras.toEither),
-      TE.map(resetThings),
+  const { taskState, invokeTask } = task.useAsyncFailableTask(
+    useCallback(
+      () =>
+        F.pipe(
+          TE.tryCatch(async () => await backend.getThings(), E.toError),
+          TE.chainEitherKW(tyras.toEither),
+          TE.map(resetThings),
+        ),
+      [resetThings],
     ),
   );
   task.logIfError(taskState);
@@ -136,18 +144,23 @@ const RefreshThings = () => {
 const RestoreThing = () => {
   const fieldRef = useRef(null);
   const addThing = state.useState((s) => s.addThing);
-  const { taskState, invokeTask } = task.useAsyncFailableTask((id: string) => {
-    if (id.length > 0) {
-      return F.pipe(
-        TE.tryCatch(
-          async () => backend.restoreThing({ url: { id } }),
-          E.toError,
-        ),
-        TE.chainEitherKW(tyras.toEither),
-        TE.map(addThing),
-      );
-    }
-  });
+  const { taskState, invokeTask } = task.useAsyncFailableTask(
+    useCallback(
+      (id: string) => {
+        if (id.length > 0) {
+          return F.pipe(
+            TE.tryCatch(
+              async () => backend.restoreThing({ url: { id } }),
+              E.toError,
+            ),
+            TE.chainEitherKW(tyras.toEither),
+            TE.map(addThing),
+          );
+        }
+      },
+      [addThing],
+    ),
+  );
   task.logIfError(taskState);
   return (
     <Popover placement="right" initialFocusRef={fieldRef}>
@@ -194,58 +207,73 @@ const RestoreThing = () => {
 };
 
 const Thing = ({
-  thing,
+  thing: { id, ...thing },
 }: {
   thing: tyras.RuntimeOf<protocol.data.things.Thing>;
 }) => {
   const removeThing = state.useState((s) => s.removeThing);
   const updateThing = state.useState((s) => s.updateThing);
   const { taskState: refreshTaskState, invokeTask: invokeRefreshTask } =
-    task.useAsyncFailableTask(() => {
-      if (!isBusy) {
-        return F.pipe(
-          TE.tryCatch(
-            async () => await backend.readThing({ url: { id: thing.id } }),
-            E.toError,
-          ),
-          TE.chainEitherKW(tyras.toEither),
-          TE.map(updateThing),
-          TE.map(() => setIsInvalid(false)),
-        );
-      }
-    });
+    task.useAsyncFailableTask(
+      useCallback(
+        (isBusy: boolean) => {
+          if (!isBusy) {
+            return F.pipe(
+              TE.tryCatch(
+                async () => await backend.readThing({ url: { id } }),
+                E.toError,
+              ),
+              TE.chainEitherKW(tyras.toEither),
+              TE.map(updateThing),
+              TE.map(() => setIsInvalid(false)),
+            );
+          }
+        },
+        [id, updateThing],
+      ),
+    );
   const { taskState: deleteTaskState, invokeTask: invokeDeleteTask } =
-    task.useAsyncFailableTask(() => {
-      if (!isBusy) {
-        return F.pipe(
-          TE.tryCatch(
-            async () => await backend.deleteThing({ url: { id: thing.id } }),
-            E.toError,
-          ),
-          TE.chainEitherKW(tyras.toEither),
-          TE.map(removeThing),
-          TE.map(() => setIsInvalid(false)),
-        );
-      }
-    });
+    task.useAsyncFailableTask(
+      useCallback(
+        (isBusy: boolean) => {
+          if (!isBusy) {
+            return F.pipe(
+              TE.tryCatch(
+                async () => await backend.deleteThing({ url: { id } }),
+                E.toError,
+              ),
+              TE.chainEitherKW(tyras.toEither),
+              TE.map(removeThing),
+              TE.map(() => setIsInvalid(false)),
+            );
+          }
+        },
+        [id, removeThing],
+      ),
+    );
   const { taskState: updateTaskState, invokeTask: invokeUpdateTask } =
-    task.useAsyncFailableTask((payload: string) => {
-      if (!isBusy) {
-        return F.pipe(
-          TE.tryCatch(
-            async () =>
-              await backend.updateThing({
-                url: { id: thing.id },
-                body: { payload },
-              }),
-            E.toError,
-          ),
-          TE.chainEitherKW(tyras.toEither),
-          TE.map(updateThing),
-          TE.map(() => setIsInvalid(false)),
-        );
-      }
-    });
+    task.useAsyncFailableTask(
+      useCallback(
+        (isBusy: boolean, payload: string) => {
+          if (!isBusy) {
+            return F.pipe(
+              TE.tryCatch(
+                async () =>
+                  await backend.updateThing({
+                    url: { id },
+                    body: { payload },
+                  }),
+                E.toError,
+              ),
+              TE.chainEitherKW(tyras.toEither),
+              TE.map(updateThing),
+              TE.map(() => setIsInvalid(false)),
+            );
+          }
+        },
+        [id, updateThing],
+      ),
+    );
   task.logIfError(refreshTaskState);
   task.logIfError(deleteTaskState);
   task.logIfError(updateTaskState);
@@ -268,10 +296,10 @@ const Thing = ({
           closeOnClick={false}
         >
           <IconButton
-            aria-label={`Refresh thing ${thing.id}`}
+            aria-label={`Refresh thing ${id}`}
             icon={<RepeatIcon />}
             isDisabled={isBusy}
-            onClick={invokeRefreshTask}
+            onClick={() => invokeRefreshTask(isBusy)}
           />
         </Tooltip>
       </Center>
@@ -281,16 +309,11 @@ const Thing = ({
           gap="0.5em"
           alignItems="center"
         >
-          <PropertyEditor
-            name="ID"
-            value={thing.id}
-            id={`t-${thing.id}-id`}
-            isDisabled
-          />
+          <PropertyEditor name="ID" value={id} id={`t-${id}-id`} isDisabled />
           <PropertyEditor
             name="Payload"
             value={thing.payload}
-            id={`t-${thing.id}-payload`}
+            id={`t-${id}-payload`}
             isDisabled={isBusy}
             mutableValueInfo={{
               onValueChange: () => {
@@ -298,7 +321,8 @@ const Thing = ({
                   setIsInvalid(false);
                 }
               },
-              onValueChangeSubmit: invokeUpdateTask,
+              onValueChangeSubmit: (payload) =>
+                invokeUpdateTask(isBusy, payload),
               updateTaskState: updateTaskState,
             }}
           />
@@ -316,11 +340,11 @@ const Thing = ({
           closeOnClick={false}
         >
           <IconButton
-            aria-label={`Delete ${thing.id}`}
+            aria-label={`Delete ${id}`}
             isDisabled={isBusy}
             icon={<DeleteIcon />}
             colorScheme="red"
-            onClick={invokeDeleteTask}
+            onClick={() => invokeDeleteTask(isBusy)}
           />
         </Tooltip>
       </Center>
